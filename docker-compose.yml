@@ -1,9 +1,9 @@
 services:
-  hmpps-template-kotlin:
-    image: ghcr.io/ministryofjustice/hmpps-template-kotlin:latest
+  hmpps-prisoner-finance-advances-api:
+    image: ghcr.io/ministryofjustice/hmpps-prisoner-finance-advances-api:latest
     networks:
       - hmpps
-    container_name: hmpps-template-kotlin
+    container_name: hmpps-prisoner-finance-advances-api
     ports:
       - "8080:8080"
     healthcheck:

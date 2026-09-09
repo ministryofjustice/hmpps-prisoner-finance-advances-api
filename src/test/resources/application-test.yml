@@ -13,3 +13,14 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
+
+spring:
+  jpa:
+    show-sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:/db/migrations/common
+
+general-ledger-api:
+  url: http://localhost:8091

@@ -1,9 +1,9 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.health
 
 import org.junit.jupiter.api.Test
-import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.IntegrationTestBase
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.IntegrationTestBase
 
 class HealthCheckTest : IntegrationTestBase() {
 

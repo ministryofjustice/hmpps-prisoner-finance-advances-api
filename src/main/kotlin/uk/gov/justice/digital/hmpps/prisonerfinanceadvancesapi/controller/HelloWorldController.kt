@@ -24,26 +24,26 @@ class HelloWorldController {
   @Operation(summary = "Hello World Endpoint")
   @ApiResponses(
     value = [
-        ApiResponse(
-            responseCode = "200",
-            description = "Hello World!",
-            content = [Content(mediaType = "text/plain")],
-        ),
-        ApiResponse(
-            responseCode = "401",
-            description = "Unauthorized - requires a valid OAuth2 token",
-            content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
-        ),
-        ApiResponse(
-            responseCode = "403",
-            description = "Forbidden - requires an appropriate role",
-            content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
-        ),
-        ApiResponse(
-            responseCode = "500",
-            description = "Internal Server Error - An unexpected error occurred.",
-            content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
-        ),
+      ApiResponse(
+        responseCode = "200",
+        description = "Hello World!",
+        content = [Content(mediaType = "text/plain")],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized - requires a valid OAuth2 token",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden - requires an appropriate role",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "Internal Server Error - An unexpected error occurred.",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
     ],
   )
   @SecurityRequirement(name = "bearer-jwt", scopes = [ROLE_PRISONER_FINANCE__ADVANCES__RO, ROLE_PRISONER_FINANCE__ADVANCES__RW])

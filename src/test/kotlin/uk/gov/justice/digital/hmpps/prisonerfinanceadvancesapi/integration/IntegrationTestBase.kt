@@ -1,9 +1,11 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration
 
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
+import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
@@ -32,6 +34,9 @@ abstract class IntegrationTestBase {
   @Autowired
   protected lateinit var integrationTestHelpers: IntegrationTestHelpers
 
+  @LocalServerPort
+  private var port: Int = 0
+
   internal fun setAuthorisation(
     username: String? = "AUTH_ADM",
     roles: List<String> = listOf(),
@@ -41,5 +46,13 @@ abstract class IntegrationTestBase {
   protected fun stubPingWithResponse(status: Int, statusGeneralLedger: Int) {
     hmppsAuth.stubHealthPing(status)
     generalLedgerApi.stubHealthPing(statusGeneralLedger)
+  }
+
+  @BeforeEach
+  fun initClients() {
+    webTestClient = WebTestClient.bindToServer()
+      .baseUrl("http://localhost:$port")
+      .build()
+    integrationTestHelpers.setWebClient(webTestClient)
   }
 }

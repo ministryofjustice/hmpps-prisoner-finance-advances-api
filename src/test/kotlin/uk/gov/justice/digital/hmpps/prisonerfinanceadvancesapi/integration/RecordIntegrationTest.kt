@@ -11,6 +11,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.Adva
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 class RecordIntegrationTest : IntegrationTestBase() {
 
@@ -54,14 +55,16 @@ class RecordIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `should 201 if the payment profile id already exists`() {
+      val advanceTime = Instant.now().truncatedTo(ChronoUnit.MILLIS)
+
       val advanceRecordRequest = CreateAdvanceRecordRequest(
         legacyPaymentProfileId = "1234",
         legacyInformationNumber = "5678",
         prisonNumber = "A1234BC",
         prisonID = "LEI",
         amount = 10,
-        createdOn = Instant.now(),
-        repaymentStartDate = Instant.now(),
+        createdOn = advanceTime,
+        repaymentStartDate = advanceTime,
         repaymentAmount = 1,
         reference = "REF",
         createdBy = "USER",

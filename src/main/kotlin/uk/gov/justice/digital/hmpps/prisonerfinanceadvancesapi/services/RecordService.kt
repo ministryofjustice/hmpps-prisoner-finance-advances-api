@@ -42,22 +42,22 @@ class RecordService(private val advanceRecordRepository: AdvanceRecordRepository
     }
   }
 
-    fun getAdvances(prisonNumber: String, pageSize : Int, pageNumber: Int) : PagedResponse<AdvanceRecordResponse> {
-      val zeroIndexedPage: Int = pageNumber - 1
+  fun getAdvances(prisonNumber: String, pageSize: Int, pageNumber: Int): PagedResponse<AdvanceRecordResponse> {
+    val zeroIndexedPage: Int = pageNumber - 1
 
-      val pagedRequest = PageRequest.of(
-        zeroIndexedPage,
-        pageSize,
-        Sort.by(
-          Sort.Order.desc("createdOn"),
-          Sort.Order.desc("id"),
-        ),
-      )
+    val pagedRequest = PageRequest.of(
+      zeroIndexedPage,
+      pageSize,
+      Sort.by(
+        Sort.Order.desc("createdOn"),
+        Sort.Order.desc("id"),
+      ),
+    )
 
-      val result = advanceRecordRepository.findByPrisonNumber(prisonNumber, pagedRequest)
+    val result = advanceRecordRepository.findByPrisonNumber(prisonNumber, pagedRequest)
 
-      return result.toPageResponse { content ->
-        content.map { AdvanceRecordResponse.fromEntity(it) }
-      }
+    return result.toPageResponse { content ->
+      content.map { AdvanceRecordResponse.fromEntity(it) }
     }
+  }
 }

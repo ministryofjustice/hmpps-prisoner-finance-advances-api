@@ -44,7 +44,6 @@ class PrisonerFinanceAdvancesApiExceptionHandler {
       ).also { log.info("MethodArgumentTypeMismatchException: {}", e.message) }
   }
 
-
   @ExceptionHandler(MethodArgumentTypeMismatchException::class)
   fun handleMethodArgumentTypeMismatchException(e: MethodArgumentTypeMismatchException): ResponseEntity<ErrorResponse> {
     val paramName = e.parameter.parameterName

@@ -10,7 +10,6 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.PagedResponse
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
-
 class GetAdvancesTest : IntegrationTestBase() {
 
   @BeforeEach
@@ -20,10 +19,9 @@ class GetAdvancesTest : IntegrationTestBase() {
 
   @Test
   fun `should get all advances for prisonNumber`() {
+    val prisonNumber = "X1234AB"
 
-    val prisonNumber = "1234AB"
-
-    repeat(10) { i->
+    repeat(10) { i ->
       this.integrationTestHelpers.createAdvance(
         prisonNumber = prisonNumber,
         legacyPaymentProfileId = i.toString(),
@@ -62,8 +60,7 @@ class GetAdvancesTest : IntegrationTestBase() {
 
   @Test
   fun `should get no advances for prisonNumber when there are none`() {
-
-    val prisonNumber = "1234AB"
+    val prisonNumber = "C1234AB"
 
     val response = webTestClient.get().uri("/advances/$prisonNumber")
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
@@ -128,7 +125,7 @@ class GetAdvancesTest : IntegrationTestBase() {
   fun `should return 400 BAD REQUEST when requesting a page that doesnt exist`() {
     val prisonNumber = "A1245BC"
 
-    repeat(25) { i->
+    repeat(25) { i ->
       this.integrationTestHelpers.createAdvance(
         prisonNumber = prisonNumber,
         legacyPaymentProfileId = i.toString(),
@@ -156,7 +153,7 @@ class GetAdvancesTest : IntegrationTestBase() {
   fun `should get second page of results of advances for prison number`() {
     val prisonNumber = "A1245BC"
 
-    repeat(25) { i->
+    repeat(25) { i ->
       this.integrationTestHelpers.createAdvance(
         prisonNumber = prisonNumber,
         legacyPaymentProfileId = i.toString(),

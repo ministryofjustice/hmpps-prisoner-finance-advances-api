@@ -19,7 +19,7 @@ import java.time.Instant
 class IntegrationTestHelpers(
   @Autowired
   private val advanceRecordRepository: AdvanceRecordRepository,
-  private val jwtAuthHelper: JwtAuthorisationHelper
+  private val jwtAuthHelper: JwtAuthorisationHelper,
 ) {
 
   internal fun setAuthorisation(
@@ -27,7 +27,6 @@ class IntegrationTestHelpers(
     roles: List<String> = listOf(),
     scopes: List<String> = listOf("read"),
   ): (HttpHeaders) -> Unit = jwtAuthHelper.setAuthorisationHeader(username = username, scope = scopes, roles = roles)
-
 
   lateinit var webTestClient: WebTestClient
 
@@ -38,14 +37,15 @@ class IntegrationTestHelpers(
   @Autowired
   lateinit var entityManager: EntityManager
 
-  fun createAdvance(prisonNumber: String,
-                    legacyPaymentProfileId: String = "1234",
-                    legacyInformationNumber: String = "5678",
-                    amount: Int,
-                    prisonId: String = "LEI",
-                    repaymentAmount : Int,
-                    status : AdvanceStatus = AdvanceStatus.ACTIVE) : AdvanceRecordResponse
-  {
+  fun createAdvance(
+    prisonNumber: String,
+    legacyPaymentProfileId: String = "1234",
+    legacyInformationNumber: String = "5678",
+    amount: Int,
+    prisonId: String = "LEI",
+    repaymentAmount: Int,
+    status: AdvanceStatus = AdvanceStatus.ACTIVE,
+  ): AdvanceRecordResponse {
     val advanceRecordRequest = CreateAdvanceRecordRequest(
       legacyPaymentProfileId = legacyPaymentProfileId,
       legacyInformationNumber = legacyInformationNumber,

@@ -31,7 +31,7 @@ import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
 @Tag(name = "Advance Record Controller")
 @RestController
-class RecordController(val recordService: RecordService) {
+class AdvanceRecordController(val recordService: RecordService) {
 
   @Operation(
     summary = "Create a new advance record",
@@ -74,6 +74,35 @@ class RecordController(val recordService: RecordService) {
     return ResponseEntity.status(201).body(createdRecordResponse)
   }
 
+  @ApiResponses(
+    value = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Paginated advance records for prisonNumber",
+        content = [Content(mediaType = "application/json")],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Bad Request",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized - requires a valid OAuth2 token",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden - requires an appropriate role",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "Internal Server Error - An unexpected error occurred.",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+  )
   @SecurityRequirement(name = "bearer-jwt", scopes = [ROLE_PRISONER_FINANCE__ADVANCES__RW, ROLE_PRISONER_FINANCE__ADVANCES__RO])
   @PreAuthorize("hasAnyAuthority('$ROLE_PRISONER_FINANCE__ADVANCES__RW', '$ROLE_PRISONER_FINANCE__ADVANCES__RO')")
   @GetMapping("/advances/{prisonNumber}")
@@ -85,8 +114,7 @@ class RecordController(val recordService: RecordService) {
     @PathVariable("prisonNumber") prisonNumber: String,
     @RequestParam @Min(1) pageNumber: Int = 1,
     @RequestParam @Min(1) pageSize: Int = 25,
-  ) : ResponseEntity<PagedResponse<AdvanceRecordResponse>> {
-
+  ): ResponseEntity<PagedResponse<AdvanceRecordResponse>> {
     val returnedAdvances = recordService.getAdvances(
       prisonNumber,
       pageNumber = pageNumber,

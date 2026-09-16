@@ -19,7 +19,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services.RecordService
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
-@Tag(name = "Record Controller")
+@Tag(name = "Advance Record Controller")
 @RestController
 class RecordController(val recordService: RecordService) {
 

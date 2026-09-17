@@ -19,7 +19,7 @@ data class CreateAdvanceRecordRequest(
   val prisonID: String,
 
   @field:Schema(description = "The amount in pence issued in the advance", example = "500", required = true)
-  val amount: Int,
+  val amount: Long,
 
   @field:Schema(description = "The date time when the advance was created with the time set to midnight", example = "2024-06-18T00:00:00.000000", required = true)
   val createdOn: Instant,
@@ -28,7 +28,7 @@ data class CreateAdvanceRecordRequest(
   val repaymentStartDate: Instant,
 
   @field:Schema(description = "The amount in pence to be repaid weekly", example = "50", required = true)
-  val repaymentAmount: Int,
+  val repaymentAmount: Long,
 
   @field:Schema(description = "The reference from the payment profile ", example = "FNC", required = true)
   val reference: String,

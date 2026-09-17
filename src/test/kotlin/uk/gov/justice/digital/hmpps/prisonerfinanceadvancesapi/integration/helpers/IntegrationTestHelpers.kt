@@ -41,9 +41,9 @@ class IntegrationTestHelpers(
     prisonNumber: String,
     legacyPaymentProfileId: String = "1234",
     legacyInformationNumber: String = "5678",
-    amount: Int,
+    amount: Long,
     prisonId: String = "LEI",
-    repaymentAmount: Int,
+    repaymentAmount: Long,
     status: AdvanceStatus = AdvanceStatus.ACTIVE,
   ): AdvanceRecordResponse {
     val advanceRecordRequest = CreateAdvanceRecordRequest(

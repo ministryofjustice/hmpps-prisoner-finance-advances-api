@@ -30,7 +30,7 @@ class AdvanceRecord(
   var prisonID: String,
 
   @Column(name = "amount", nullable = false, unique = false)
-  var amount: Int,
+  var amount: Long,
 
   @Column(name = "created_on", nullable = false, unique = false)
   var createdOn: Instant,
@@ -39,7 +39,7 @@ class AdvanceRecord(
   var repaymentStartDate: Instant,
 
   @Column(name = "repayment_amount", nullable = false, unique = false)
-  var repaymentAmount: Int,
+  var repaymentAmount: Long,
 
   @Column(name = "reference", nullable = false, unique = false)
   var reference: String,

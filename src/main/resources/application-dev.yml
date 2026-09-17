@@ -12,3 +12,13 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
+
+
+spring:
+  application:
+    name: hmpps-prisoner-finance-advances-api
+
+  datasource:
+    url: 'jdbc:postgresql://localhost:5436/advances?sslmode=prefer'
+    username: postgres
+    password: postgres

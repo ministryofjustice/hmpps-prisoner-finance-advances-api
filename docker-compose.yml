@@ -13,6 +13,24 @@ services:
       - HMPPS_AUTH_URL=http://hmpps-auth:8080/auth
       - SPRING_PROFILES_ACTIVE=dev
 
+  hmpps-prisoner-finance-advances-db:
+    container_name: hmpps-prisoner-finance-advances-db
+    image: postgres:16.15
+    restart: always
+    networks:
+      - hmpps
+    ports:
+      - "5436:5432"
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=advances
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   hmpps-auth:
     image: ghcr.io/ministryofjustice/hmpps-auth:latest
     networks:

@@ -18,7 +18,7 @@ class AdvanceRecord(
   var id: UUID = UUID.randomUUID(),
 
   @Column(name = "legacy_payment_profile_id", nullable = false, unique = true)
-  var legacyPaymentProfileId: String,
+  var legacyPaymentProfileId: Long,
 
   @Column(name = "legacy_information_number", nullable = false, unique = false)
   var legacyInformationNumber: String,

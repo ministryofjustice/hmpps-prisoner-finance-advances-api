@@ -26,7 +26,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should 201 and the created record`() {
       val advanceRecordRequest = CreateAdvanceRecordRequest(
-        legacyPaymentProfileId = "1234",
+        legacyPaymentProfileId = 1234,
         legacyInformationNumber = "5678",
         prisonNumber = "A1234BC",
         prisonID = "LEI",
@@ -58,7 +58,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
       val advanceTime = Instant.now().truncatedTo(ChronoUnit.MILLIS)
 
       val advanceRecordRequest = CreateAdvanceRecordRequest(
-        legacyPaymentProfileId = "1234",
+        legacyPaymentProfileId = 1234,
         legacyInformationNumber = "5678",
         prisonNumber = "A1234BC",
         prisonID = "LEI",
@@ -109,7 +109,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return 403 forbidden when using the incorrect role`() {
       val advanceRecordRequest = CreateAdvanceRecordRequest(
-        legacyPaymentProfileId = "1234",
+        legacyPaymentProfileId = 1234,
         legacyInformationNumber = "5678",
         prisonNumber = "A1234BC",
         prisonID = "LEI",

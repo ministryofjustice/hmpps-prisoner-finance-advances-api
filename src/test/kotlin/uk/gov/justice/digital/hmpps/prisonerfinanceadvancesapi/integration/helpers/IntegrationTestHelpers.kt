@@ -39,7 +39,7 @@ class IntegrationTestHelpers(
 
   fun createAdvance(
     prisonNumber: String,
-    legacyPaymentProfileId: String = "1234",
+    legacyPaymentProfileId: Long = 1234,
     legacyInformationNumber: String = "5678",
     amount: Long,
     prisonId: String = "LEI",

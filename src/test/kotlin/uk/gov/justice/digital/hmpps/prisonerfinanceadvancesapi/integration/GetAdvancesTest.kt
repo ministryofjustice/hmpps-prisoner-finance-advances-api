@@ -24,7 +24,7 @@ class GetAdvancesTest : IntegrationTestBase() {
     repeat(10) { i ->
       this.integrationTestHelpers.createAdvance(
         prisonNumber = prisonNumber,
-        legacyPaymentProfileId = i.toString(),
+        legacyPaymentProfileId = i.toLong(),
         legacyInformationNumber = i.toString(),
         amount = i.toLong(),
         prisonId = "LEI",
@@ -47,7 +47,7 @@ class GetAdvancesTest : IntegrationTestBase() {
 
     assertThat(firstAdvance.prisonNumber).isEqualTo(prisonNumber)
     assertThat(firstAdvance.prisonID).isEqualTo("LEI")
-    assertThat(firstAdvance.legacyPaymentProfileId).isEqualTo("9")
+    assertThat(firstAdvance.legacyPaymentProfileId).isEqualTo(9)
     assertThat(firstAdvance.legacyInformationNumber).isEqualTo("9")
     assertThat(firstAdvance.status).isEqualTo(AdvanceStatus.ACTIVE)
     assertThat(firstAdvance.amount).isEqualTo(9)
@@ -128,7 +128,7 @@ class GetAdvancesTest : IntegrationTestBase() {
     repeat(25) { i ->
       this.integrationTestHelpers.createAdvance(
         prisonNumber = prisonNumber,
-        legacyPaymentProfileId = i.toString(),
+        legacyPaymentProfileId = i.toLong(),
         legacyInformationNumber = i.toString(),
         amount = i.toLong(),
         prisonId = "LEI",
@@ -156,7 +156,7 @@ class GetAdvancesTest : IntegrationTestBase() {
     repeat(25) { i ->
       this.integrationTestHelpers.createAdvance(
         prisonNumber = prisonNumber,
-        legacyPaymentProfileId = i.toString(),
+        legacyPaymentProfileId = i.toLong(),
         legacyInformationNumber = i.toString(),
         amount = i.toLong(),
         prisonId = "LEI",

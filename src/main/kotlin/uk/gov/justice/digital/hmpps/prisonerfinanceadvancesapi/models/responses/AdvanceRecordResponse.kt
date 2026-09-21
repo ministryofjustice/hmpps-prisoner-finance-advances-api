@@ -8,7 +8,7 @@ import kotlin.String
 
 data class AdvanceRecordResponse(
   val id: UUID,
-  val legacyPaymentProfileId: String,
+  val legacyPaymentProfileId: Long,
   val legacyInformationNumber: String,
   val prisonNumber: String,
   val prisonID: String,

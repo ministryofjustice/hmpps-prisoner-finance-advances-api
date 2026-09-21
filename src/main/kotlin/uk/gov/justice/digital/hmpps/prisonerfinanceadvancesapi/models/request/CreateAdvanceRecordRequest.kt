@@ -7,7 +7,7 @@ import java.time.Instant
 data class CreateAdvanceRecordRequest(
 
   @field:Schema(description = "The payment profile id from NOMIS", example = "123456789", required = true)
-  val legacyPaymentProfileId: String,
+  val legacyPaymentProfileId: Long,
 
   @field:Schema(description = "The information number for the advance from NOMIS", example = "12345678-1", required = true)
   val legacyInformationNumber: String,

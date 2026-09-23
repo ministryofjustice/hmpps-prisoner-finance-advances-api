@@ -19,6 +19,6 @@ spring:
     name: hmpps-prisoner-finance-advances-api
 
   datasource:
-    url: 'jdbc:postgresql://localhost:5436/advances?sslmode=prefer'
-    username: postgres
-    password: postgres
+    url: 'jdbc:postgresql://${DB_SERVER:localhost:5437}/${DB_NAME:advances}?sslmode=prefer'
+    username: ${DB_USER:postgres}
+    password: ${DB_PASS:postgres}

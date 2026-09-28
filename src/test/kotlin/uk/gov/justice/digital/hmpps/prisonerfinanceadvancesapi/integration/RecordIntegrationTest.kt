@@ -12,6 +12,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.Cr
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import java.util.UUID
 
 class RecordIntegrationTest : IntegrationTestBase() {
 
@@ -37,6 +38,8 @@ class RecordIntegrationTest : IntegrationTestBase() {
         reference = "REF",
         createdBy = "USER",
         status = AdvanceStatus.ACTIVE,
+        prisonerSubAccountId = UUID.randomUUID(),
+        prisonSubAccountId = UUID.randomUUID(),
       )
 
       val responseBody = webTestClient.post().uri("/advances")
@@ -69,6 +72,8 @@ class RecordIntegrationTest : IntegrationTestBase() {
         reference = "REF",
         createdBy = "USER",
         status = AdvanceStatus.ACTIVE,
+        prisonerSubAccountId = UUID.randomUUID(),
+        prisonSubAccountId = UUID.randomUUID(),
       )
 
       val responseBody1 = webTestClient.post().uri("/advances")
@@ -120,6 +125,8 @@ class RecordIntegrationTest : IntegrationTestBase() {
         reference = "REF",
         createdBy = "USER",
         status = AdvanceStatus.ACTIVE,
+        prisonerSubAccountId = UUID.randomUUID(),
+        prisonSubAccountId = UUID.randomUUID(),
       )
 
       webTestClient.post().uri("/advances")

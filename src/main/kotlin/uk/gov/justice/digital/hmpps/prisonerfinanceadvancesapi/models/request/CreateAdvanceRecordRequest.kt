@@ -47,5 +47,5 @@ data class CreateAdvanceRecordRequest(
   val prisonerSubAccountId: UUID,
 
   @field:Schema(description = "The subAccount of the prison", example = "b3bf7141-1392-4ce8-b324-d929a14b4663", required = true)
-  val prisonSubAccountId: UUID
+  val prisonSubAccountId: UUID,
 )

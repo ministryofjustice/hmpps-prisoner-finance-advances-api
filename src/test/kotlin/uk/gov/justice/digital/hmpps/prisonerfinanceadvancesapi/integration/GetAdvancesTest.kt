@@ -9,6 +9,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.Adva
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.PagedResponse
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
+import java.util.UUID
 
 class GetAdvancesTest : IntegrationTestBase() {
 
@@ -30,6 +31,8 @@ class GetAdvancesTest : IntegrationTestBase() {
         prisonId = "LEI",
         repaymentAmount = 5,
         status = AdvanceStatus.ACTIVE,
+        prisonerSubAccountId = UUID.randomUUID(),
+        prisonSubAccountId = UUID.randomUUID(),
       )
     }
 
@@ -134,6 +137,8 @@ class GetAdvancesTest : IntegrationTestBase() {
         prisonId = "LEI",
         repaymentAmount = 5,
         status = AdvanceStatus.ACTIVE,
+        prisonerSubAccountId = UUID.randomUUID(),
+        prisonSubAccountId = UUID.randomUUID(),
       )
     }
 
@@ -162,6 +167,8 @@ class GetAdvancesTest : IntegrationTestBase() {
         prisonId = "LEI",
         repaymentAmount = 5,
         status = AdvanceStatus.ACTIVE,
+        prisonerSubAccountId = UUID.randomUUID(),
+        prisonSubAccountId = UUID.randomUUID(),
       )
     }
 

@@ -14,6 +14,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 import java.time.Instant
+import java.util.UUID
 
 @TestConfiguration
 class IntegrationTestHelpers(
@@ -45,6 +46,8 @@ class IntegrationTestHelpers(
     prisonId: String = "LEI",
     repaymentAmount: Long,
     status: AdvanceStatus = AdvanceStatus.ACTIVE,
+    prisonerSubAccountId: UUID,
+    prisonSubAccountId: UUID,
   ): AdvanceRecordResponse {
     val advanceRecordRequest = CreateAdvanceRecordRequest(
       legacyPaymentProfileId = legacyPaymentProfileId,
@@ -58,6 +61,8 @@ class IntegrationTestHelpers(
       reference = "REF",
       createdBy = "USER",
       status = status,
+      prisonerSubAccountId = prisonerSubAccountId,
+      prisonSubAccountId = prisonSubAccountId,
     )
 
     val responseBody = webTestClient.post().uri("/advances")

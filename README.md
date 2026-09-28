@@ -154,3 +154,43 @@ docker build --build-arg GIT_REF=21345 --build-arg GIT_BRANCH=bob --build-arg BU
 ```
 docker run -e HMPPS_AUTH_URL="https://sign-in-dev.hmpps.service.justice.gov.uk/auth" <sha from step 3>
 ```
+
+## Generating API Clients & Models
+
+We use OpenAPI Generator to automatically generate the Kotlin client and data models for the General Ledger API.
+
+The configuration is in build.gradle.kts under apiSpecs. This creates two tasks:
+
+`writeGeneralledgerJson`: Downloads the latest API specification from the Dev environment to openapi-specs/generalledger.json.
+
+`buildGeneralledgerApiClient`: Generates the Kotlin data classes (Models) and WebClient interfaces (API) from the local JSON file.
+
+### How to Update
+If the General Ledger or holds API changes:
+
+Clean up existing clients
+
+```shell
+./gradlew cleanOpenApi
+```
+
+Download specs for new clients
+
+```shell
+./gradlew downloadAllOpenApiSpecs
+```
+
+Build new api clients
+
+```shell
+./gradlew buildAllApiClients
+```
+
+Verify & Regenerate: Check the diff in openapi-specs/generalledger.json and run a build to ensure the code compiles.
+
+Do a new build to verify everything is okay
+
+```sh
+./gradlew clean build
+```
+Commit: Commit the updated .json file. Do not commit the generated code in build/.

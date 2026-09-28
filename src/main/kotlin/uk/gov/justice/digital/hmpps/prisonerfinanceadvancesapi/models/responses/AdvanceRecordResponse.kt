@@ -16,7 +16,8 @@ data class AdvanceRecordResponse(
   val createdOn: Instant,
   val repaymentStartDate: Instant,
   val repaymentAmount: Long,
-  val reference: String,
+  val reference: String? = null,
+  val comment: String? = null,
   val createdBy: String,
   val status: AdvanceStatus,
 ) {
@@ -33,6 +34,7 @@ data class AdvanceRecordResponse(
       repaymentStartDate = advanceRecordEntity.repaymentStartDate,
       repaymentAmount = advanceRecordEntity.repaymentAmount,
       reference = advanceRecordEntity.reference,
+      comment = advanceRecordEntity.comment,
       createdBy = advanceRecordEntity.createdBy,
       status = advanceRecordEntity.status,
     )

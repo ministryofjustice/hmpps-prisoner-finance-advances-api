@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import java.time.Instant
+import java.util.UUID
 
 data class CreateAdvanceRecordRequest(
 
@@ -30,8 +31,11 @@ data class CreateAdvanceRecordRequest(
   @field:Schema(description = "The amount in pence to be repaid weekly", example = "50", required = true)
   val repaymentAmount: Long,
 
-  @field:Schema(description = "The reference from the payment profile ", example = "FNC", required = true)
-  val reference: String,
+  @field:Schema(description = "The reference from the payment profile ", example = "FNC", required = false)
+  val reference: String? = null,
+
+  @field:Schema(description = "The comment from the payment profile ", example = "A comment about this advance", required = false)
+  val comment: String? = null,
 
   @field:Schema(description = "The username that created this advance", example = "JOHN_USER", required = true)
   val createdBy: String,
@@ -39,4 +43,9 @@ data class CreateAdvanceRecordRequest(
   @field:Schema(description = "The current status of this advance", example = "AdvanceStatus.ACTIVE", required = true)
   val status: AdvanceStatus,
 
+  @field:Schema(description = "The subAccount of the prisoner", example = "b3bf7141-1392-4ce8-b324-d929a14b4663", required = true)
+  val prisonerSubAccountId: UUID,
+
+  @field:Schema(description = "The subAccount of the prison", example = "b3bf7141-1392-4ce8-b324-d929a14b4663", required = true)
+  val prisonSubAccountId: UUID
 )

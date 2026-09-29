@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request
 
 import io.swagger.v3.oas.annotations.media.Schema
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceRecordEntity
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import java.time.Instant
 import java.util.UUID
@@ -48,4 +49,21 @@ data class CreateAdvanceRecordRequest(
 
   @field:Schema(description = "The subAccount of the prison", example = "b3bf7141-1392-4ce8-b324-d929a14b4663", required = true)
   val prisonSubAccountId: UUID,
-)
+
+  @field:Schema(description = "The legacy transaction ID from NOMIS", example = "12345", required = false)
+  val legacyTransactionId: Long? = null,
+) {
+  fun toAdvanceRecordEntity() = AdvanceRecordEntity(
+    legacyPaymentProfileId = this.legacyPaymentProfileId,
+    legacyInformationNumber = this.legacyInformationNumber,
+    prisonNumber = this.prisonNumber,
+    prisonID = this.prisonID,
+    amount = this.amount,
+    createdOn = this.createdOn,
+    repaymentStartDate = this.repaymentStartDate,
+    repaymentAmount = this.repaymentAmount,
+    reference = this.reference,
+    createdBy = this.createdBy,
+    status = this.status,
+  )
+}

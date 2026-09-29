@@ -1,6 +1,6 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses
 
-import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceRecord
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceRecordEntity
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import java.time.Instant
 import java.util.UUID
@@ -23,7 +23,7 @@ data class AdvanceRecordResponse(
 ) {
 
   companion object {
-    fun fromEntity(advanceRecordEntity: AdvanceRecord) = AdvanceRecordResponse(
+    fun fromEntity(advanceRecordEntity: AdvanceRecordEntity) = AdvanceRecordResponse(
       id = advanceRecordEntity.id,
       legacyPaymentProfileId = advanceRecordEntity.legacyPaymentProfileId,
       legacyInformationNumber = advanceRecordEntity.legacyInformationNumber,

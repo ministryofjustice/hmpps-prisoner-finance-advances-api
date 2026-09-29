@@ -12,7 +12,7 @@ import java.util.UUID
 
 @Entity
 @Table(name = "advance_records")
-class AdvanceRecord(
+class AdvanceRecordEntity(
 
   @Id
   var id: UUID = UUID.randomUUID(),

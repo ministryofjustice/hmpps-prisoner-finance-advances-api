@@ -33,7 +33,7 @@ class WebClientConfiguration(
     builder: WebClient.Builder,
   ): WebClient = builder.authorisedWebClient(
     authorizedClientManager = authorizedClientManager,
-    registrationId = "general-ledger-api",
+    registrationId = "advances-api",
     url = generalLedgerApiBaseUri,
     timeout = timeout,
   )

@@ -35,6 +35,13 @@ spring:
         provider:
           hmpps-auth:
             token-uri: ${hmpps-auth.url}/oauth/token
+        registration:
+          advances-api:
+            provider: hmpps-auth
+            client-id: ${advances-api.client.id}
+            client-secret: ${advances-api.client.secret}
+            authorization-grant-type: client_credentials
+            scope: read
   http:
     codecs:
       max-in-memory-size: 10MB
@@ -80,3 +87,8 @@ springdoc:
 
 general-ledger-api:
   url: ${GENERAL_LEDGER_API_URL}
+
+advances-api:
+  client:
+    id: ${ADVANCES_API_CLIENT_ID}
+    secret: ${ADVANCES_API_CLIENT_SECRET}

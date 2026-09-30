@@ -20,7 +20,7 @@ services:
     networks:
       - hmpps
     ports:
-      - "5436:5432"
+      - "5437:5432"
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres

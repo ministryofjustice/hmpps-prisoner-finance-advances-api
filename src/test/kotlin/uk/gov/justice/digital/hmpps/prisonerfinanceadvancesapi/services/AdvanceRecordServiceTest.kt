@@ -106,7 +106,6 @@ class AdvanceRecordServiceTest {
           generalLedgerApiClient.postTransaction(
             request = any<CreateTransactionRequest>(),
             idempotencyKey = eq(idempotencyKey),
-            transactionId = eq(request.legacyTransactionId),
           ),
         ).thenReturn(glTransactionId)
 
@@ -144,7 +143,6 @@ class AdvanceRecordServiceTest {
         verify(generalLedgerApiClient, times(1)).postTransaction(
           request = any(),
           idempotencyKey = eq(idempotencyKey),
-          transactionId = eq(request.legacyTransactionId),
         )
       }
 
@@ -194,7 +192,6 @@ class AdvanceRecordServiceTest {
           generalLedgerApiClient.postTransaction(
             request = any<CreateTransactionRequest>(),
             idempotencyKey = eq(idempotencyKey),
-            transactionId = eq(request.legacyTransactionId),
           ),
         ).thenReturn(glTransactionId)
 
@@ -249,7 +246,6 @@ class AdvanceRecordServiceTest {
           generalLedgerApiClient.postTransaction(
             request = any<CreateTransactionRequest>(),
             idempotencyKey = eq(idempotencyKey),
-            transactionId = eq(request.legacyTransactionId),
           ),
         ).thenReturn(glTransactionId)
 

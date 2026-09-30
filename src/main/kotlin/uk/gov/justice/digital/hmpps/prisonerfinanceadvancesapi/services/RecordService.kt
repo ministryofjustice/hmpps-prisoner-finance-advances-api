@@ -53,7 +53,6 @@ class RecordService(
       legacyTransactionId = createAdvanceRecordRequest.legacyTransactionId,
     ),
     idempotencyKey = idempotencyKey,
-    transactionId = createAdvanceRecordRequest.legacyTransactionId,
   )
 
   fun createAdvanceRecord(

@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus.NOT_FOUND
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.security.access.AccessDeniedException
+import org.springframework.web.bind.MissingRequestHeaderException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.method.annotation.HandlerMethodValidationException
@@ -18,6 +19,17 @@ import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
 @RestControllerAdvice
 class PrisonerFinanceAdvancesApiExceptionHandler {
+
+  @ExceptionHandler(value = [MissingRequestHeaderException::class])
+  fun handleMissingHeaderException(e: ValidationException): ResponseEntity<ErrorResponse> = ResponseEntity
+    .status(BAD_REQUEST)
+    .body(
+      ErrorResponse(
+        status = BAD_REQUEST,
+        userMessage = "Validation failure",
+        developerMessage = e.message,
+      ),
+    ).also { log.info("Validation exception") }
 
   @ExceptionHandler(CustomException::class)
   fun handleCustomException(e: CustomException): ResponseEntity<ErrorResponse> = ResponseEntity

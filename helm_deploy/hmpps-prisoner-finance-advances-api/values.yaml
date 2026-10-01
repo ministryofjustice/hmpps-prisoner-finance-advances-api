@@ -38,6 +38,10 @@ generic-service:
     hmpps-prisoner-finance-advances-api-application-insights:
       APPLICATIONINSIGHTS_CONNECTION_STRING: "APPLICATIONINSIGHTS_CONNECTION_STRING"
 
+    hmpps-prisoner-finance-advances-api-client-creds:
+      ADVANCES_API_CLIENT_ID: 'API_CLIENT_ID'
+      ADVANCES_API_CLIENT_SECRET: 'API_CLIENT_SECRET'
+
     advances-rds-postgresql-instance-output:
       DB_SERVER: "rds_instance_endpoint"
       DB_NAME: "database_name"

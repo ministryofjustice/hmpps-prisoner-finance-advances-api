@@ -22,3 +22,8 @@ spring:
     url: 'jdbc:postgresql://${DB_SERVER:localhost:5437}/${DB_NAME:advances}?sslmode=prefer'
     username: ${DB_USER:postgres}
     password: ${DB_PASS:postgres}
+
+advances-api:
+  client:
+    id: ${ADVANCES_API_CLIENT_ID:hmpps-prisoner-finance-general-ledger-api}
+    secret: ${ADVANCES_API_CLIENT_SECRET:clientsecret}

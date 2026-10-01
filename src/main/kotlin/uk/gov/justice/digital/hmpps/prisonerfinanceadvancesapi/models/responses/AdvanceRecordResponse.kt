@@ -1,6 +1,6 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses
 
-import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceRecord
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceRecordEntity
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import java.time.Instant
 import java.util.UUID
@@ -16,13 +16,14 @@ data class AdvanceRecordResponse(
   val createdOn: Instant,
   val repaymentStartDate: Instant,
   val repaymentAmount: Long,
-  val reference: String,
+  val reference: String? = null,
+  val comment: String? = null,
   val createdBy: String,
   val status: AdvanceStatus,
 ) {
 
   companion object {
-    fun fromEntity(advanceRecordEntity: AdvanceRecord) = AdvanceRecordResponse(
+    fun fromEntity(advanceRecordEntity: AdvanceRecordEntity) = AdvanceRecordResponse(
       id = advanceRecordEntity.id,
       legacyPaymentProfileId = advanceRecordEntity.legacyPaymentProfileId,
       legacyInformationNumber = advanceRecordEntity.legacyInformationNumber,
@@ -33,6 +34,7 @@ data class AdvanceRecordResponse(
       repaymentStartDate = advanceRecordEntity.repaymentStartDate,
       repaymentAmount = advanceRecordEntity.repaymentAmount,
       reference = advanceRecordEntity.reference,
+      comment = advanceRecordEntity.comment,
       createdBy = advanceRecordEntity.createdBy,
       status = advanceRecordEntity.status,
     )

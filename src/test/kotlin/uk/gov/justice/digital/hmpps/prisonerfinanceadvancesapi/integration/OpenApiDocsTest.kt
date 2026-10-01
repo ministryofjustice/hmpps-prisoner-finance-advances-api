@@ -13,7 +13,6 @@ import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.http.MediaType
 import kotlin.collections.forEach
 import kotlin.text.contains
-import kotlin.text.get
 
 class OpenApiDocsTest(
   @Autowired private val buildProperties: BuildProperties,

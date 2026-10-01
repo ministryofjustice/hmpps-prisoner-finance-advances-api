@@ -17,6 +17,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wirem
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
+import java.util.UUID
 
 @ExtendWith(HmppsAuthApiExtension::class, GeneralLedgerApiExtension::class)
 @SpringBootTest(webEnvironment = RANDOM_PORT)
@@ -54,5 +55,11 @@ abstract class IntegrationTestBase {
       .baseUrl("http://localhost:$port")
       .build()
     integrationTestHelpers.setWebClient(webTestClient)
+  }
+
+  companion object {
+    fun setIdempotencyKey(
+      key: UUID,
+    ): (HttpHeaders) -> Unit = { it.set("Idempotency-Key", key.toString()) }
   }
 }

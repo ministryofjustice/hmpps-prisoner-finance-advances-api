@@ -12,7 +12,7 @@ import java.util.UUID
 
 @Entity
 @Table(name = "advance_records")
-class AdvanceRecord(
+class AdvanceRecordEntity(
 
   @Id
   var id: UUID = UUID.randomUUID(),
@@ -41,8 +41,11 @@ class AdvanceRecord(
   @Column(name = "repayment_amount", nullable = false, unique = false)
   var repaymentAmount: Long,
 
-  @Column(name = "reference", nullable = false, unique = false)
-  var reference: String,
+  @Column(name = "reference", nullable = true, unique = false)
+  var reference: String? = null,
+
+  @Column(name = "comment", nullable = true, unique = false)
+  var comment: String? = null,
 
   @Column(name = "created_by", nullable = false, unique = false)
   var createdBy: String,

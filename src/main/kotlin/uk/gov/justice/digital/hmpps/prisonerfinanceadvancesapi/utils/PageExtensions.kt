@@ -2,7 +2,7 @@ package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.utils
 
 import org.springframework.data.domain.Page
 import org.springframework.http.HttpStatus
-import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.CustomException
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.exceptions.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.PagedResponse
 import kotlin.math.max
 

@@ -7,7 +7,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.clients.generalledger.AccountControllerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.clients.generalledger.SubAccountControllerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.clients.generalledger.TransactionControllerApi
-import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.CustomException
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.exceptions.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.AccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreateAccountRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreateStatementBalanceRequest

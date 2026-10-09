@@ -7,6 +7,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.test.web.reactive.server.expectBody
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RO
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RW
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.GeneralLedgerApiExtension
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.GeneralLedgerApiExtension.Companion.generalLedgerApi
@@ -451,6 +452,24 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
       .responseBody!!
 
     assertThat(response.userMessage).isEqualTo("Cannot repay an advance with the status of WRITTEN_OFF")
+  }
+
+  @Test
+  fun `should return 403 forbidden when using the incorrect role`() {
+    val requestPayment = CreateAdvanceRepaymentRequest(
+      amount = 12,
+      legacyTransactionId = 22222,
+      createdAt = Instant.now(),
+      createdBy = "TEST",
+      description = "Test description",
+    )
+
+    webTestClient.post().uri("/advances/${UUID.randomUUID()}/repay")
+      .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RO)))
+      .headers(setIdempotencyKey(UUID.randomUUID()))
+      .bodyValue(requestPayment)
+      .exchange()
+      .expectStatus().isForbidden
   }
 
   @Test

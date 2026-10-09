@@ -57,5 +57,6 @@ data class CreateAdvanceRecordRequest(
     reference = this.reference,
     createdBy = this.createdBy,
     status = this.status,
+    updatedAt = null,
   )
 }

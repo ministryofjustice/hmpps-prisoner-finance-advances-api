@@ -22,7 +22,7 @@ import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 class PrisonerFinanceAdvancesApiExceptionHandler {
 
   @ExceptionHandler(value = [MissingRequestHeaderException::class])
-  fun handleMissingHeaderException(e: ValidationException): ResponseEntity<ErrorResponse> = ResponseEntity
+  fun handleMissingHeaderException(e: MissingRequestHeaderException): ResponseEntity<ErrorResponse> = ResponseEntity
     .status(BAD_REQUEST)
     .body(
       ErrorResponse(

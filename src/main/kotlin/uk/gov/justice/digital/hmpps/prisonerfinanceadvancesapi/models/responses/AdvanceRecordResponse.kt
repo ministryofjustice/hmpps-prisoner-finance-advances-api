@@ -46,8 +46,10 @@ data class AdvanceRecordResponse(
 
   @field:Schema(description = "The current status of this advance", example = "AdvanceStatus.ACTIVE", required = true)
   val status: AdvanceStatus,
-) {
 
+  @field:Schema(description = "Last time this advance record was changed", required = true)
+  val updatedAt: Instant?,
+) {
   companion object {
     fun fromEntity(advanceRecordEntity: AdvanceRecordEntity) = AdvanceRecordResponse(
       id = advanceRecordEntity.id,
@@ -63,6 +65,7 @@ data class AdvanceRecordResponse(
       comment = advanceRecordEntity.comment,
       createdBy = advanceRecordEntity.createdBy,
       status = advanceRecordEntity.status,
+      updatedAt = advanceRecordEntity.updatedAt,
     )
   }
 }

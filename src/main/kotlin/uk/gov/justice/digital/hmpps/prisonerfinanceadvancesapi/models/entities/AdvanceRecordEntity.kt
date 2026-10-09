@@ -50,6 +50,9 @@ class AdvanceRecordEntity(
   @Column(name = "created_by", nullable = false, unique = false)
   var createdBy: String,
 
+  @Column(name = "updated_at", nullable = true, unique = false)
+  var updatedAt: Instant?,
+
   @Enumerated(EnumType.STRING)
   @Column(name = "status", nullable = false, unique = false)
   var status: AdvanceStatus,

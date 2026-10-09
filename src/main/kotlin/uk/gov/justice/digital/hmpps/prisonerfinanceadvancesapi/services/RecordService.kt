@@ -10,6 +10,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.exceptions.Custom
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.PostingType
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvancePaymentEntity
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceRecordEntity
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreatePostingRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreateTransactionRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
@@ -20,6 +21,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvancePaymentRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.utils.toPageResponse
+import java.time.Instant
 import java.util.UUID
 
 @Service
@@ -145,7 +147,7 @@ class RecordService(
       advance = insertService.saveAdvanceAndPayment(
         advanceRecordEntity,
         advancePaymentEntity,
-      )
+      ).first
     } catch (e: DataIntegrityViolationException) {
       val isDuplicateAdvancePayment = e.message?.contains("uc_advance_record_payments_transaction_id") == true
       val isDuplicateAdvance = e.message?.contains("uc_advance_records_legacy_payment_profile_id") == true
@@ -190,9 +192,35 @@ class RecordService(
       .fold(0L) { s, it -> s + applyPostingType(it.prisonerPostingType, it.amount) }
   }
 
+  private fun updateAdvanceStatusForRepayment(
+    currentAdvanceBalance: Long,
+    repaymentRequest: CreateAdvanceRepaymentRequest,
+    advance: AdvanceRecordEntity,
+  ): AdvanceRecordEntity {
+    if (currentAdvanceBalance - repaymentRequest.amount == 0L) {
+      advance.updatedAt = Instant.now()
+      advance.status = AdvanceStatus.REPAID
+    }
+    if (currentAdvanceBalance - repaymentRequest.amount < 0L) {
+      throw CustomException("Repayments cannot exceed the balance of the advance record", HttpStatus.BAD_REQUEST)
+    }
+
+    return advance
+  }
+
   fun repayAdvance(repaymentRequest: CreateAdvanceRepaymentRequest, advanceId: UUID, idempotencyKey: UUID): AdvanceRepaymentResponse {
-    val advance = advanceRecordRepository.getAdvanceRecordEntityById(advanceId)
+    var advance = advanceRecordRepository.getAdvanceRecordEntityById(advanceId)
       ?: throw CustomException("Advance record not found", status = HttpStatus.NOT_FOUND)
+
+    if (advance.status == AdvanceStatus.REPAID || advance.status == AdvanceStatus.WRITTEN_OFF) {
+      throw CustomException("Cannot repay an advance with the status of ${advance.status}", HttpStatus.BAD_REQUEST)
+    }
+
+    advance = updateAdvanceStatusForRepayment(
+      currentAdvanceBalance = calculateAdvanceBalance(advance),
+      repaymentRequest,
+      advance,
+    )
 
     val glTransactionId = postAdvanceRepaymentTransaction(
       createAdvanceRepaymentRequest = repaymentRequest,
@@ -202,7 +230,8 @@ class RecordService(
     )
     var advancePayment: AdvancePaymentEntity
     try {
-      advancePayment = insertService.saveAdvanceRepayment(
+      advancePayment = insertService.saveAdvanceAndPayment(
+        advance,
         AdvancePaymentEntity(
           advanceRecordId = advance.id,
           transactionId = glTransactionId,
@@ -211,7 +240,7 @@ class RecordService(
           timestamp = repaymentRequest.createdAt,
           createdBy = repaymentRequest.createdBy,
         ),
-      )
+      ).second
     } catch (e: DataIntegrityViolationException) {
       val isDuplicatedRepayment = e.message?.contains("uc_advance_record_payments_transaction_id") == true
       if (isDuplicatedRepayment) {

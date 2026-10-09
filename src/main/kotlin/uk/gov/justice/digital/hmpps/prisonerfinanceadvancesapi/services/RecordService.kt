@@ -24,36 +24,54 @@ class RecordService(
   private val advancePaymentRepository: AdvancePaymentRepository,
   private val insertService: InsertService,
   private val generalLedgerApiClient: GeneralLedgerApiClient,
+  val memoryAccountCache: InMemoryAccountCache = InMemoryAccountCache(),
+  private val accountResolver: GeneralLedgerAccountResolver,
 ) {
+  private val prisonSubAccountRefAdvances = "1502:ADV"
+  private val prisonerSubAccountRefAdvances = "SPENDS"
 
   private fun postAdvanceTransaction(
     createAdvanceRecordRequest: CreateAdvanceRecordRequest,
     idempotencyKey: UUID,
-  ): UUID = generalLedgerApiClient.postTransaction(
-    CreateTransactionRequest(
-      reference = createAdvanceRecordRequest.reference ?: "",
-      description = createAdvanceRecordRequest.comment ?: "",
-      timestamp = createAdvanceRecordRequest.createdOn,
-      amount = createAdvanceRecordRequest.amount,
-      entrySequence = 1,
-      postings = listOf(
-        CreatePostingRequest(
-          subAccountId = createAdvanceRecordRequest.prisonSubAccountId,
-          type = CreatePostingRequest.Type.DR,
-          amount = createAdvanceRecordRequest.amount,
-          entrySequence = 1,
+  ): UUID {
+    val prisonAccount = accountResolver.resolveSubAccount(
+      createAdvanceRecordRequest.prisonID,
+      prisonSubAccountRefAdvances,
+      memoryAccountCache,
+    )
+
+    val prisonerAccount = accountResolver.resolveSubAccount(
+      createAdvanceRecordRequest.prisonNumber,
+      prisonerSubAccountRefAdvances,
+      memoryAccountCache,
+    )
+
+    return generalLedgerApiClient.postTransaction(
+      CreateTransactionRequest(
+        reference = createAdvanceRecordRequest.reference ?: "",
+        description = createAdvanceRecordRequest.comment ?: "",
+        timestamp = createAdvanceRecordRequest.createdOn,
+        amount = createAdvanceRecordRequest.amount,
+        entrySequence = 1,
+        postings = listOf(
+          CreatePostingRequest(
+            subAccountId = prisonAccount,
+            type = CreatePostingRequest.Type.DR,
+            amount = createAdvanceRecordRequest.amount,
+            entrySequence = 1,
+          ),
+          CreatePostingRequest(
+            subAccountId = prisonerAccount,
+            type = CreatePostingRequest.Type.CR,
+            amount = createAdvanceRecordRequest.amount,
+            entrySequence = 1,
+          ),
         ),
-        CreatePostingRequest(
-          subAccountId = createAdvanceRecordRequest.prisonerSubAccountId,
-          type = CreatePostingRequest.Type.CR,
-          amount = createAdvanceRecordRequest.amount,
-          entrySequence = 1,
-        ),
+        legacyTransactionId = createAdvanceRecordRequest.legacyTransactionId,
       ),
-      legacyTransactionId = createAdvanceRecordRequest.legacyTransactionId,
-    ),
-    idempotencyKey = idempotencyKey,
-  )
+      idempotencyKey = idempotencyKey,
+    )
+  }
 
   fun createAdvanceRecord(
     createAdvanceRecordRequest: CreateAdvanceRecordRequest,

@@ -1,12 +1,12 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services
 
-import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.AccountResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.SubAccountResponse
 
-interface AccountCache {
-  fun put(parentRef: String, account: AccountResponse)
+interface SubAccountCache {
+  fun put(subAccountRef: String, subAccount: SubAccountResponse)
   fun getOrPut(
-    parentRef: String,
-    supplier: () -> AccountResponse,
-  ): AccountResponse
+    subAccountRef: String,
+    supplier: () -> SubAccountResponse,
+  ): SubAccountResponse
   fun clear()
 }

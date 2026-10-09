@@ -23,6 +23,8 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.Cr
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvancePaymentRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services.GeneralLedgerAccountResolver
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services.InMemoryAccountCache
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services.InsertService
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services.RecordService
 import java.time.Instant
@@ -40,6 +42,9 @@ class AdvanceRecordServiceTest {
   @Mock
   lateinit var generalLedgerApiClient: GeneralLedgerApiClient
 
+  @Mock
+  lateinit var accountResolver: GeneralLedgerAccountResolver
+
   private lateinit var advanceRecordService: RecordService
 
   @BeforeEach
@@ -49,6 +54,8 @@ class AdvanceRecordServiceTest {
       advancePaymentRepository = advancePaymentRepository,
       insertService = InsertService(advanceRecordRepository, advancePaymentRepository),
       generalLedgerApiClient = generalLedgerApiClient,
+      memoryAccountCache = InMemoryAccountCache(),
+      accountResolver = accountResolver,
     )
   }
 
@@ -69,8 +76,6 @@ class AdvanceRecordServiceTest {
       comment = "",
       createdBy = "TEST",
       status = AdvanceStatus.ACTIVE,
-      prisonerSubAccountId = UUID.randomUUID(),
-      prisonSubAccountId = UUID.randomUUID(),
       legacyTransactionId = 1234,
     )
     val glTransactionId = UUID.randomUUID()
@@ -102,6 +107,22 @@ class AdvanceRecordServiceTest {
     inner class AdvanceRecordCreated {
       @BeforeEach
       fun setup() {
+        whenever {
+          accountResolver.resolveSubAccount(
+            parentRef = eq(request.prisonID),
+            subRef = eq("1502:ADV"),
+            cache = any(),
+          )
+        }.thenReturn(UUID.randomUUID())
+
+        whenever {
+          accountResolver.resolveSubAccount(
+            parentRef = eq(request.prisonNumber),
+            subRef = eq("SPENDS"),
+            cache = any(),
+          )
+        }.thenReturn(UUID.randomUUID())
+
         whenever(
           generalLedgerApiClient.postTransaction(
             request = any<CreateTransactionRequest>(),
@@ -188,6 +209,22 @@ class AdvanceRecordServiceTest {
 
       @BeforeEach
       fun setup() {
+        whenever {
+          accountResolver.resolveSubAccount(
+            parentRef = eq(request.prisonID),
+            subRef = eq("1502:ADV"),
+            cache = any(),
+          )
+        }.thenReturn(UUID.randomUUID())
+
+        whenever {
+          accountResolver.resolveSubAccount(
+            parentRef = eq(request.prisonNumber),
+            subRef = eq("SPENDS"),
+            cache = any(),
+          )
+        }.thenReturn(UUID.randomUUID())
+
         whenever(
           generalLedgerApiClient.postTransaction(
             request = any<CreateTransactionRequest>(),
@@ -242,6 +279,22 @@ class AdvanceRecordServiceTest {
     inner class AdvancePaymentRepositoryThrowsDataIntegrityViolationException {
       @BeforeEach
       fun setup() {
+        whenever {
+          accountResolver.resolveSubAccount(
+            parentRef = eq(request.prisonID),
+            subRef = eq("1502:ADV"),
+            cache = any(),
+          )
+        }.thenReturn(UUID.randomUUID())
+
+        whenever {
+          accountResolver.resolveSubAccount(
+            parentRef = eq(request.prisonNumber),
+            subRef = eq("SPENDS"),
+            cache = any(),
+          )
+        }.thenReturn(UUID.randomUUID())
+
         whenever(
           generalLedgerApiClient.postTransaction(
             request = any<CreateTransactionRequest>(),

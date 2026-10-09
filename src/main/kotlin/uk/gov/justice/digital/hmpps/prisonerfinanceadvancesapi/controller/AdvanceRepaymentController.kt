@@ -35,8 +35,8 @@ class AdvanceRepaymentController(
     )
     @Valid idempotencyKey: UUID,
     @Valid @RequestBody createAdvanceRepaymentRequest: CreateAdvanceRepaymentRequest,
-    @PathVariable("advanceId") advanceId: UUID,
-  ): ResponseEntity<AdvanceRepaymentResponse> = ResponseEntity.ok().body(
+    @PathVariable advanceId: UUID,
+  ): ResponseEntity<AdvanceRepaymentResponse> = ResponseEntity.status(201).body(
     recordService.repayAdvance(
       createAdvanceRepaymentRequest,
       advanceId,

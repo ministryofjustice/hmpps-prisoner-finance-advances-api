@@ -179,11 +179,20 @@ class RecordService(
     }
   }
 
+  private fun applyPostingType(postingType: PostingType, amount: Long): Long {
+    if (postingType == PostingType.CR) return amount
+    return -amount
+  }
+
+  fun calculateAdvanceBalance(advance: AdvanceRecordEntity): Long {
+    // this might need a refactor for when migrated advances that don't have payments will get added
+    return advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advance.id)
+      .fold(0L) { s, it -> s + applyPostingType(it.prisonerPostingType, it.amount) }
+  }
+
   fun repayAdvance(repaymentRequest: CreateAdvanceRepaymentRequest, advanceId: UUID, idempotencyKey: UUID): AdvanceRepaymentResponse {
     val advance = advanceRecordRepository.getAdvanceRecordEntityById(advanceId)
-
-    // add test
-    if (advance == null) throw CustomException("Advance record not found", status = HttpStatus.NOT_FOUND)
+      ?: throw CustomException("Advance record not found", status = HttpStatus.NOT_FOUND)
 
     val glTransactionId = postAdvanceRepaymentTransaction(
       createAdvanceRepaymentRequest = repaymentRequest,
@@ -191,17 +200,26 @@ class RecordService(
       prisonNumber = advance.prisonNumber,
       idempotencyKey = idempotencyKey,
     )
-
-    val advancePayment = advancePaymentRepository.save(
-      AdvancePaymentEntity(
-        advanceRecordId = advance.id,
-        transactionId = glTransactionId,
-        prisonerPostingType = PostingType.DR,
-        amount = repaymentRequest.amount,
-        timestamp = repaymentRequest.createdAt,
-        createdBy = repaymentRequest.createdBy,
-      ),
-    )
+    var advancePayment: AdvancePaymentEntity
+    try {
+      advancePayment = insertService.saveAdvanceRepayment(
+        AdvancePaymentEntity(
+          advanceRecordId = advance.id,
+          transactionId = glTransactionId,
+          prisonerPostingType = PostingType.DR,
+          amount = repaymentRequest.amount,
+          timestamp = repaymentRequest.createdAt,
+          createdBy = repaymentRequest.createdBy,
+        ),
+      )
+    } catch (e: DataIntegrityViolationException) {
+      val isDuplicatedRepayment = e.message?.contains("uc_advance_record_payments_transaction_id") == true
+      if (isDuplicatedRepayment) {
+        advancePayment = advancePaymentRepository.findByTransactionId(glTransactionId)!!
+      } else {
+        throw e
+      }
+    }
 
     return advancePayment.toResponse(
       legacyTransactionId = repaymentRequest.legacyTransactionId,

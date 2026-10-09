@@ -7,4 +7,6 @@ import java.util.UUID
 interface AdvancePaymentRepository : JpaRepository<AdvancePaymentEntity, UUID> {
 
   fun findByTransactionId(transactionId: UUID): AdvancePaymentEntity?
+
+  fun findAdvancePaymentEntitiesByAdvanceRecordId(advanceRecordId: UUID): List<AdvancePaymentEntity>
 }

@@ -23,4 +23,9 @@ class InsertService(
     advancePaymentRepository.saveAndFlush(advancePaymentEntity)
     return savedRecord
   }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = [Exception::class, Error::class])
+  fun saveAdvanceRepayment(
+    advancePaymentEntity: AdvancePaymentEntity,
+  ): AdvancePaymentEntity = advancePaymentRepository.saveAndFlush(advancePaymentEntity)
 }

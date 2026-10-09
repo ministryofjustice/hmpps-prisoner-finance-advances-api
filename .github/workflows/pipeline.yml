@@ -22,6 +22,7 @@ permissions:
   packages: write
   id-token: write
   attestations: write
+  pages: write
 
 concurrency:
   # Only cancel in progress when on a branch - use SHA on main to ensure uniqueness.
@@ -59,6 +60,19 @@ jobs:
       java-version: "25"
     needs:
       - app_version
+  schema-spy:
+    name: SchemaSpy report
+    if: github.ref == 'refs/heads/main'
+    needs:
+      - gradle_verify
+    uses: ./.github/workflows/schema-spy.yml
+    with:
+      docker_compose_file: 'docker-compose-schema-spy.yml'
+      database_name: 'advances'
+      database_user: 'postgres'
+      database_password: 'postgres'
+      database_type: pgsql11
+    secrets: inherit
   build:
     name: Build docker image from hmpps-github-actions
     if: github.ref == 'refs/heads/main'

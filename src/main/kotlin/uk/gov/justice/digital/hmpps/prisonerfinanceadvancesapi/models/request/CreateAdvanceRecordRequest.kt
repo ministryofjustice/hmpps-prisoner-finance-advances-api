@@ -6,7 +6,6 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.Adva
 import java.time.Instant
 
 data class CreateAdvanceRecordRequest(
-
   @field:Schema(description = "The payment profile id from NOMIS", example = "123456789", required = true)
   val legacyPaymentProfileId: Long,
 

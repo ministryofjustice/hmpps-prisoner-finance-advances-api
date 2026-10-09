@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
@@ -18,9 +19,12 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.PostingTyp
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvancePaymentEntity
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceRecordEntity
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreatePostingRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreateTransactionRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRepaymentRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRepaymentResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvancePaymentRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services.GeneralLedgerAccountResolver
@@ -105,6 +109,11 @@ class AdvanceRecordServiceTest {
 
     @Nested
     inner class AdvanceRecordCreated {
+      val prisonSubAccount = UUID.randomUUID()
+      val prisonerSubAccount = UUID.randomUUID()
+
+      val glTransactionRequestCaptor = argumentCaptor<CreateTransactionRequest>()
+
       @BeforeEach
       fun setup() {
         whenever {
@@ -113,7 +122,7 @@ class AdvanceRecordServiceTest {
             subRef = eq("1502:ADV"),
             cache = any(),
           )
-        }.thenReturn(UUID.randomUUID())
+        }.thenReturn(prisonSubAccount)
 
         whenever {
           accountResolver.resolveSubAccount(
@@ -121,11 +130,11 @@ class AdvanceRecordServiceTest {
             subRef = eq("SPENDS"),
             cache = any(),
           )
-        }.thenReturn(UUID.randomUUID())
+        }.thenReturn(prisonerSubAccount)
 
         whenever(
           generalLedgerApiClient.postTransaction(
-            request = any<CreateTransactionRequest>(),
+            request = glTransactionRequestCaptor.capture(),
             idempotencyKey = eq(idempotencyKey),
           ),
         ).thenReturn(glTransactionId)
@@ -165,6 +174,26 @@ class AdvanceRecordServiceTest {
           request = any(),
           idempotencyKey = eq(idempotencyKey),
         )
+
+        val glRequest = glTransactionRequestCaptor.firstValue
+
+        assertThat(glRequest.legacyTransactionId).isEqualTo(request.legacyTransactionId)
+        assertThat(glRequest.amount).isEqualTo(request.amount)
+        assertThat(glRequest.description).isEqualTo(request.comment)
+        assertThat(glRequest.reference).isEqualTo(request.reference)
+        assertThat(glRequest.timestamp).isEqualTo(request.createdOn)
+        assertThat(glRequest.entrySequence).isEqualTo(1)
+        assertThat(glRequest.postings).hasSize(2)
+
+        val debitPosting = glRequest.postings.first { it.type == CreatePostingRequest.Type.DR }
+        assertThat(debitPosting.entrySequence).isEqualTo(1)
+        assertThat(debitPosting.amount).isEqualTo(request.amount)
+        assertThat(debitPosting.subAccountId).isEqualTo(prisonSubAccount)
+
+        val creditPosting = glRequest.postings.first { it.type == CreatePostingRequest.Type.CR }
+        assertThat(creditPosting.entrySequence).isEqualTo(2)
+        assertThat(creditPosting.amount).isEqualTo(request.amount)
+        assertThat(creditPosting.subAccountId).isEqualTo(prisonerSubAccount)
       }
 
       @Test
@@ -350,6 +379,128 @@ class AdvanceRecordServiceTest {
         assertThat(advanceRecordResponse.repaymentAmount).isEqualTo(request.repaymentAmount)
         assertThat(advanceRecordResponse.repaymentStartDate).isEqualTo(request.repaymentStartDate)
       }
+    }
+  }
+
+  @Nested
+  inner class RepayAdvance {
+
+    val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
+      amount = 11,
+      legacyTransactionId = 123,
+      createdAt = Instant.now(),
+      createdBy = "TEST",
+      description = "Test description",
+    )
+    val prisonID = "LEI"
+    val prisonNumber = "A123DX"
+    val advanceAmount = 10000L
+    val advanceId = UUID.randomUUID()
+    val idempotency = UUID.randomUUID()
+    val transactionToGl = argumentCaptor<CreateTransactionRequest>()
+    val savedEntity = argumentCaptor<AdvancePaymentEntity>()
+
+    val glTransactionId = UUID.randomUUID()
+    val prisonSubAccount = UUID.randomUUID()
+    val prisonerSubAccount = UUID.randomUUID()
+
+    lateinit var advanceRepaymentResponse: AdvanceRepaymentResponse
+
+    @BeforeEach
+    fun setup() {
+      val advanceEntityTime = Instant.now()
+      whenever { advanceRecordRepository.getAdvanceRecordEntityById(advanceId) }.thenReturn(
+        AdvanceRecordEntity(
+          id = advanceId,
+          legacyPaymentProfileId = 123,
+          legacyInformationNumber = "12323",
+          prisonNumber = prisonNumber,
+          prisonID = prisonID,
+          amount = advanceAmount,
+          createdOn = advanceEntityTime,
+          repaymentStartDate = advanceEntityTime,
+          repaymentAmount = 11,
+          reference = "test",
+          comment = "test",
+          createdBy = "TEST",
+          status = AdvanceStatus.ACTIVE,
+        ),
+      )
+
+      whenever {
+        accountResolver.resolveSubAccount(
+          parentRef = eq(prisonID),
+          subRef = eq("1502:ADV"),
+          cache = any(),
+        )
+      }.thenReturn(prisonSubAccount)
+
+      whenever {
+        accountResolver.resolveSubAccount(
+          parentRef = eq(prisonNumber),
+          subRef = eq("SPENDS"),
+          cache = any(),
+        )
+      }.thenReturn(prisonerSubAccount)
+
+      whenever {
+        generalLedgerApiClient.postTransaction(
+          request = transactionToGl.capture(),
+          idempotencyKey = eq(idempotency),
+        )
+      }.thenReturn(glTransactionId)
+
+      whenever(
+        advancePaymentRepository.save(savedEntity.capture()),
+      ).thenAnswer { it.arguments[0] }
+
+      advanceRepaymentResponse = advanceRecordService.repayAdvance(
+        advanceRepaymentRequest,
+        advanceId = advanceId,
+        idempotencyKey = idempotency,
+      )
+    }
+
+    @Test
+    fun `should create a transaction in GL for the advance repayment`() {
+      val glRequest = transactionToGl.firstValue
+
+      assertThat(glRequest.reference).isEqualTo("")
+      assertThat(glRequest.amount).isEqualTo(advanceRepaymentRequest.amount)
+      assertThat(glRequest.entrySequence).isEqualTo(1)
+      assertThat(glRequest.legacyTransactionId).isEqualTo(advanceRepaymentRequest.legacyTransactionId)
+      assertThat(glRequest.timestamp).isEqualTo(advanceRepaymentRequest.createdAt)
+      assertThat(glRequest.description).isEqualTo(advanceRepaymentRequest.description)
+      assertThat(glRequest.postings).hasSize(2)
+
+      val debitPosting = glRequest.postings.first { it.type == CreatePostingRequest.Type.DR }
+      assertThat(debitPosting.entrySequence).isEqualTo(1)
+      assertThat(debitPosting.amount).isEqualTo(advanceRepaymentRequest.amount)
+      assertThat(debitPosting.subAccountId).isEqualTo(prisonerSubAccount)
+
+      val creditPosting = glRequest.postings.first { it.type == CreatePostingRequest.Type.CR }
+      assertThat(creditPosting.entrySequence).isEqualTo(2)
+      assertThat(creditPosting.amount).isEqualTo(advanceRepaymentRequest.amount)
+      assertThat(creditPosting.subAccountId).isEqualTo(prisonSubAccount)
+    }
+
+    @Test
+    fun `should save the advance repayment to the repository`() {
+      val savedAdvanceRepayment = savedEntity.firstValue
+      verify(
+        advancePaymentRepository,
+        times(1),
+      ).save(any<AdvancePaymentEntity>())
+
+      assertThat(advanceRepaymentResponse.id).isEqualTo(savedAdvanceRepayment.id)
+      assertThat(savedAdvanceRepayment.prisonerPostingType).isEqualTo(PostingType.DR)
+
+      assertThat(advanceRepaymentResponse.advanceId).isEqualTo(advanceId)
+      assertThat(advanceRepaymentResponse.legacyTransactionId).isEqualTo(advanceRepaymentRequest.legacyTransactionId)
+      assertThat(advanceRepaymentResponse.amount).isEqualTo(advanceRepaymentRequest.amount)
+      assertThat(advanceRepaymentResponse.createdAt).isEqualTo(advanceRepaymentRequest.createdAt)
+      assertThat(advanceRepaymentResponse.createdBy).isEqualTo(advanceRepaymentRequest.createdBy)
+      assertThat(advanceRepaymentResponse.transactionId).isEqualTo(glTransactionId)
     }
   }
 }

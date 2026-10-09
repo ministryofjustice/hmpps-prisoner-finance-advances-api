@@ -6,6 +6,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.PostingType
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRepaymentResponse
 import java.time.Instant
 import java.util.UUID
 
@@ -39,4 +40,16 @@ class AdvancePaymentEntity(
 
   @Column(name = "created_by", nullable = false, unique = false)
   var createdBy: String,
-)
+) {
+
+  fun toResponse(legacyTransactionId: Long?, description: String) = AdvanceRepaymentResponse(
+    id = this.id,
+    advanceId = this.advanceRecordId,
+    amount = this.amount,
+    createdAt = this.timestamp,
+    createdBy = this.createdBy,
+    legacyTransactionId = legacyTransactionId,
+    transactionId = this.transactionId,
+    description = description,
+  )
+}

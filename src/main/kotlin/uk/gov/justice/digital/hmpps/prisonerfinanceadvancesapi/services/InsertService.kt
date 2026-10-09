@@ -18,9 +18,9 @@ class InsertService(
   fun saveAdvanceAndPayment(
     advanceEntity: AdvanceRecordEntity,
     advancePaymentEntity: AdvancePaymentEntity,
-  ): AdvanceRecordEntity {
+  ): Pair<AdvanceRecordEntity, AdvancePaymentEntity> {
     val savedRecord = advanceRecordRepository.saveAndFlush(advanceEntity)
-    advancePaymentRepository.saveAndFlush(advancePaymentEntity)
-    return savedRecord
+    val savedPayment = advancePaymentRepository.saveAndFlush(advancePaymentEntity)
+    return Pair(savedRecord, savedPayment)
   }
 }

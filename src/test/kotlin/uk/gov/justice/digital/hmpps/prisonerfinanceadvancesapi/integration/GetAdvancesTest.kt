@@ -3,38 +3,53 @@ package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RW
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.GeneralLedgerApiExtension.Companion.generalLedgerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.PagedResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services.InMemoryAccountCache
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.util.UUID
 
 class GetAdvancesTest : IntegrationTestBase() {
 
+  @Autowired lateinit var memoryAccountCache: InMemoryAccountCache
+
+  val prisonerParentAccountId = UUID.randomUUID()
+  val prisonerSubAccountId = UUID.randomUUID()
+
+  val prisonParentAccountId = UUID.randomUUID()
+  val prisonSubAccountId = UUID.randomUUID()
+  val prisonNumber = "X1234AB"
+  val prisonId = "LEI"
+
   @BeforeEach
   fun setUp() {
     this.integrationTestHelpers.clearDB()
     hmppsAuth.stubGrantToken()
+    generalLedgerApi.resetAll()
+    memoryAccountCache.clear()
   }
 
   @Test
   fun `should get all advances for prisonNumber`() {
-    val prisonNumber = "X1234AB"
-
     repeat(10) { i ->
       this.integrationTestHelpers.createAdvance(
         prisonNumber = prisonNumber,
         legacyPaymentProfileId = i.toLong(),
         legacyInformationNumber = i.toString(),
         amount = i.toLong(),
-        prisonId = "LEI",
+        prisonId = prisonId,
         repaymentAmount = 5,
         status = AdvanceStatus.ACTIVE,
-        prisonerSubAccountId = UUID.randomUUID(),
-        prisonSubAccountId = UUID.randomUUID(),
+        prisonerSubAccountId = prisonerSubAccountId,
+        prisonSubAccountId = prisonSubAccountId,
+        prisonParentAccountId = prisonParentAccountId,
+        prisonerParentAccountId = prisonerParentAccountId,
       )
     }
 
@@ -51,7 +66,7 @@ class GetAdvancesTest : IntegrationTestBase() {
     val firstAdvance = response.content.first()
 
     assertThat(firstAdvance.prisonNumber).isEqualTo(prisonNumber)
-    assertThat(firstAdvance.prisonID).isEqualTo("LEI")
+    assertThat(firstAdvance.prisonID).isEqualTo(prisonId)
     assertThat(firstAdvance.legacyPaymentProfileId).isEqualTo(9)
     assertThat(firstAdvance.legacyInformationNumber).isEqualTo("9")
     assertThat(firstAdvance.status).isEqualTo(AdvanceStatus.ACTIVE)
@@ -65,8 +80,6 @@ class GetAdvancesTest : IntegrationTestBase() {
 
   @Test
   fun `should get no advances for prisonNumber when there are none`() {
-    val prisonNumber = "C1234AB"
-
     val response = webTestClient.get().uri("/advances/$prisonNumber")
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
       .exchange()
@@ -85,8 +98,6 @@ class GetAdvancesTest : IntegrationTestBase() {
 
   @Test
   fun `should return 400 BAD REQUEST when page number is invalid`() {
-    val prisonNumber = "A1345BC"
-
     val responseBody = webTestClient.get().uri("/advances/$prisonNumber?pageNumber=ABC")
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
       .exchange()
@@ -101,8 +112,6 @@ class GetAdvancesTest : IntegrationTestBase() {
 
   @Test
   fun `should return 400 BAD REQUEST when page size is invalid`() {
-    val prisonNumber = "A12345BC"
-
     val responseBody = webTestClient.get().uri("/advances/$prisonNumber?pageSize=ABC")
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
       .exchange()
@@ -117,9 +126,9 @@ class GetAdvancesTest : IntegrationTestBase() {
 
   @Test
   fun `should return 400 BAD REQUEST when prison number is invalid`() {
-    val prisonNumber = "A123 45BC"
+    val invalidPrisonNumber = "A123 45BC"
 
-    webTestClient.get().uri("/advances/$prisonNumber")
+    webTestClient.get().uri("/advances/$invalidPrisonNumber")
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
       .exchange()
       .expectStatus()
@@ -128,19 +137,19 @@ class GetAdvancesTest : IntegrationTestBase() {
 
   @Test
   fun `should return 400 BAD REQUEST when requesting a page that doesnt exist`() {
-    val prisonNumber = "A1245BC"
-
     repeat(25) { i ->
       this.integrationTestHelpers.createAdvance(
         prisonNumber = prisonNumber,
         legacyPaymentProfileId = i.toLong(),
         legacyInformationNumber = i.toString(),
         amount = i.toLong(),
-        prisonId = "LEI",
+        prisonId = prisonId,
         repaymentAmount = 5,
         status = AdvanceStatus.ACTIVE,
-        prisonerSubAccountId = UUID.randomUUID(),
-        prisonSubAccountId = UUID.randomUUID(),
+        prisonerSubAccountId = prisonerSubAccountId,
+        prisonSubAccountId = prisonSubAccountId,
+        prisonerParentAccountId = prisonerParentAccountId,
+        prisonParentAccountId = prisonParentAccountId,
       )
     }
 
@@ -158,19 +167,19 @@ class GetAdvancesTest : IntegrationTestBase() {
 
   @Test
   fun `should get second page of results of advances for prison number`() {
-    val prisonNumber = "A1245BC"
-
     repeat(25) { i ->
       this.integrationTestHelpers.createAdvance(
         prisonNumber = prisonNumber,
         legacyPaymentProfileId = i.toLong(),
         legacyInformationNumber = i.toString(),
         amount = i.toLong(),
-        prisonId = "LEI",
+        prisonId = prisonId,
         repaymentAmount = 5,
         status = AdvanceStatus.ACTIVE,
-        prisonerSubAccountId = UUID.randomUUID(),
-        prisonSubAccountId = UUID.randomUUID(),
+        prisonerSubAccountId = prisonerSubAccountId,
+        prisonSubAccountId = prisonSubAccountId,
+        prisonParentAccountId = prisonParentAccountId,
+        prisonerParentAccountId = prisonerParentAccountId,
       )
     }
 
@@ -191,8 +200,6 @@ class GetAdvancesTest : IntegrationTestBase() {
 
   @Test
   fun `should return 403 forbidden when user does not have the correct role`() {
-    val prisonNumber = "A9971EC"
-
     webTestClient.get().uri("/advances/$prisonNumber")
       .headers(setAuthorisation(roles = listOf("INVALID_ROLE")))
       .exchange()

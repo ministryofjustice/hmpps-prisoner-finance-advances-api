@@ -187,7 +187,7 @@ class RecordService(
   }
 
   fun calculateAdvanceBalance(advance: AdvanceRecordEntity): Long {
-    // this might need a refactor for when migrated advances that don't have payments will get added
+    // TODO: this might need a refactor for when migrated advances that don't have payments will get added - PFI 1659
     return advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advance.id)
       .fold(0L) { s, it -> s + applyPostingType(it.prisonerPostingType, it.amount) }
   }

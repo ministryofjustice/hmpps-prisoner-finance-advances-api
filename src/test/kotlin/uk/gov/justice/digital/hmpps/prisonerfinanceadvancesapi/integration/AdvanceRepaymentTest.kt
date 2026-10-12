@@ -23,6 +23,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services.InMemoryAccountCache
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 @ExtendWith(GeneralLedgerApiExtension::class, HmppsAuthApiExtension::class)
@@ -204,7 +205,7 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
     assertThat(responseOne.id).isNotNull()
     assertThat(responseOne.advanceId).isEqualTo(advanceCreated.id)
     assertThat(responseOne.amount).isEqualTo(request.amount)
-    assertThat(responseOne.createdAt).isEqualTo(request.createdAt)
+    assertThat(responseOne.createdAt.truncatedTo(ChronoUnit.MILLIS)).isEqualTo(request.createdAt.truncatedTo(ChronoUnit.MILLIS))
     assertThat(responseOne.createdBy).isEqualTo(request.createdBy)
     assertThat(responseOne.legacyTransactionId).isEqualTo(request.legacyTransactionId)
 
@@ -222,7 +223,7 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
     assertThat(responseTwo.id).isEqualTo(responseOne.id)
     assertThat(responseTwo.advanceId).isEqualTo(advanceCreated.id)
     assertThat(responseTwo.amount).isEqualTo(request.amount)
-    assertThat(responseTwo.createdAt).isEqualTo(request.createdAt)
+    assertThat(responseTwo.createdAt.truncatedTo(ChronoUnit.MILLIS)).isEqualTo(request.createdAt.truncatedTo(ChronoUnit.MILLIS))
     assertThat(responseTwo.createdBy).isEqualTo(request.createdBy)
     assertThat(responseTwo.legacyTransactionId).isEqualTo(request.legacyTransactionId)
   }

@@ -147,7 +147,7 @@ class RecordService(
       advance = insertService.saveAdvanceAndPayment(
         advanceRecordEntity,
         advancePaymentEntity,
-      ).first
+      ).advanceRecord
     } catch (e: DataIntegrityViolationException) {
       val isDuplicateAdvancePayment = e.message?.contains("uc_advance_record_payments_transaction_id") == true
       val isDuplicateAdvance = e.message?.contains("uc_advance_records_legacy_payment_profile_id") == true
@@ -197,11 +197,12 @@ class RecordService(
     repaymentRequest: CreateAdvanceRepaymentRequest,
     advance: AdvanceRecordEntity,
   ): AdvanceRecordEntity {
-    if (currentAdvanceBalance - repaymentRequest.amount == 0L) {
+    val updatedAdvanceBalance = currentAdvanceBalance - repaymentRequest.amount
+    if (updatedAdvanceBalance == 0L) {
       advance.updatedAt = Instant.now()
       advance.status = AdvanceStatus.REPAID
     }
-    if (currentAdvanceBalance - repaymentRequest.amount < 0L) {
+    if (updatedAdvanceBalance < 0L) {
       throw CustomException("Repayments cannot exceed the balance of the advance record", HttpStatus.BAD_REQUEST)
     }
 
@@ -240,7 +241,7 @@ class RecordService(
           timestamp = repaymentRequest.createdAt,
           createdBy = repaymentRequest.createdBy,
         ),
-      ).second
+      ).advancePayment
     } catch (e: DataIntegrityViolationException) {
       val isDuplicatedRepayment = e.message?.contains("uc_advance_record_payments_transaction_id") == true
       if (isDuplicatedRepayment) {

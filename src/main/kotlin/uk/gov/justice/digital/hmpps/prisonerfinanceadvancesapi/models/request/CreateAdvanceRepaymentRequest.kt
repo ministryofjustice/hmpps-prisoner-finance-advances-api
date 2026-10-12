@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import java.time.Instant
 
 data class CreateAdvanceRepaymentRequest(
-  @field:Schema(description = "The amount repaid ", example = "50", required = true)
+  @field:Schema(description = "The amount repaid in pence ", example = "50", required = true)
   val amount: Long,
 
   @field:Schema(description = "The legacy transaction ID from NOMIS", example = "12345", required = false)

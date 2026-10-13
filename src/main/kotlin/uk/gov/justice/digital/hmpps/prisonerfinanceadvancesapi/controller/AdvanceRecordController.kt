@@ -132,11 +132,10 @@ class AdvanceRecordController(val recordService: RecordService) {
   @PreAuthorize("hasAnyAuthority('$ROLE_PRISONER_FINANCE__ADVANCES__RW', '$ROLE_PRISONER_FINANCE__ADVANCES__RO')")
   @GetMapping("/advances/{prisonNumber}")
   fun getAdvances(
-    @Pattern(
+    @PathVariable @Pattern(
       regexp = VALIDATION_REGEX_PRISON_NUMBER,
       message = VALIDATION_MESSAGE_PRISON_NUMBER,
-    )
-    @PathVariable("prisonNumber") prisonNumber: String,
+    ) prisonNumber: String,
     @RequestParam @Min(1) pageNumber: Int = 1,
     @RequestParam @Min(1) pageSize: Int = 25,
   ): ResponseEntity<PagedResponse<AdvanceRecordResponse>> {

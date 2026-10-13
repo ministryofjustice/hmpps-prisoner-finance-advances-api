@@ -14,13 +14,15 @@ class InsertService(
   private val advancePaymentRepository: AdvancePaymentRepository,
 ) {
 
+  data class AdvancePaymentAndRecord(val advanceRecord: AdvanceRecordEntity, val advancePayment: AdvancePaymentEntity)
+
   @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = [Exception::class, Error::class])
   fun saveAdvanceAndPayment(
     advanceEntity: AdvanceRecordEntity,
     advancePaymentEntity: AdvancePaymentEntity,
-  ): AdvanceRecordEntity {
+  ): AdvancePaymentAndRecord {
     val savedRecord = advanceRecordRepository.saveAndFlush(advanceEntity)
-    advancePaymentRepository.saveAndFlush(advancePaymentEntity)
-    return savedRecord
+    val savedPayment = advancePaymentRepository.saveAndFlush(advancePaymentEntity)
+    return AdvancePaymentAndRecord(savedRecord, savedPayment)
   }
 }

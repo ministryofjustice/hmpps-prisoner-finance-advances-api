@@ -46,16 +46,41 @@ class IntegrationTestHelpers(
   @Autowired
   lateinit var entityManager: EntityManager
 
+  fun stubGetSubAccounts(
+    prisonId: String,
+    prisonNumber: String,
+    prisonerSubAccountId: UUID,
+    prisonSubAccountId: UUID,
+    prisonerParentAccountId: UUID,
+    prisonParentAccountId: UUID,
+  ) {
+    generalLedgerApi.stubGetSubAccount(
+      parentReference = prisonId,
+      subAccountReference = "1502:ADV",
+      subAccountID = prisonSubAccountId,
+      parentAccountId = prisonParentAccountId,
+    )
+
+    generalLedgerApi.stubGetSubAccount(
+      parentReference = prisonNumber,
+      subAccountReference = "SPENDS",
+      subAccountID = prisonerSubAccountId,
+      parentAccountId = prisonerParentAccountId,
+    )
+  }
+
   fun createAdvance(
     prisonNumber: String,
     legacyPaymentProfileId: Long = 1234,
     legacyInformationNumber: String = "5678",
     amount: Long,
-    prisonId: String = "LEI",
+    prisonId: String,
     repaymentAmount: Long,
     status: AdvanceStatus = AdvanceStatus.ACTIVE,
     prisonerSubAccountId: UUID,
     prisonSubAccountId: UUID,
+    prisonParentAccountId: UUID,
+    prisonerParentAccountId: UUID,
   ): AdvanceRecordResponse {
     val advanceRecordRequest = CreateAdvanceRecordRequest(
       legacyPaymentProfileId = legacyPaymentProfileId,
@@ -69,8 +94,15 @@ class IntegrationTestHelpers(
       reference = "REF",
       createdBy = "USER",
       status = status,
+    )
+
+    stubGetSubAccounts(
+      prisonId = prisonId,
+      prisonNumber = prisonNumber,
       prisonerSubAccountId = prisonerSubAccountId,
       prisonSubAccountId = prisonSubAccountId,
+      prisonerParentAccountId = prisonerParentAccountId,
+      prisonParentAccountId = prisonParentAccountId,
     )
 
     generalLedgerApi.stubPostTransaction(

@@ -230,11 +230,12 @@ class GeneralLedgerApiMockServer :
   fun stubGetSubAccount(
     parentReference: String,
     subAccountReference: String,
+    subAccountID: UUID = UUID.randomUUID(),
     parentAccountId: UUID = UUID.randomUUID(),
     response: List<SubAccountResponse>? = null,
   ) {
     val subAccount = SubAccountResponse(
-      id = UUID.randomUUID(),
+      id = subAccountID,
       parentAccountId = parentAccountId,
       reference = subAccountReference,
       createdAt = Instant.now(),

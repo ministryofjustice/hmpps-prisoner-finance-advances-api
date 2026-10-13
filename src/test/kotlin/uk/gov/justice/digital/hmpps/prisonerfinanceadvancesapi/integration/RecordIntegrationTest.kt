@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration
 
-import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
 import org.assertj.core.api.Assertions.assertThat
@@ -27,28 +26,49 @@ import java.util.UUID
 @ExtendWith(GeneralLedgerApiExtension::class, HmppsAuthApiExtension::class)
 class RecordIntegrationTest : IntegrationTestBase() {
 
-  private val glApiPort = 8091 // from application-test.yml
-  private val wiremockGLClient = WireMock(glApiPort)
-
   @BeforeEach
   fun clearDB() {
     integrationTestHelpers.clearDB()
     hmppsAuth.stubGrantToken()
+    generalLedgerApi.resetAll()
   }
 
   @Nested
   inner class PostAdvanceRecord {
+    val prisonId = "LEI"
+    val prisonNumber = "A1234BC"
     val idempotencyKey = UUID.randomUUID()
+
+    val prisonerParentAccountId = UUID.randomUUID()
     val prisonerSubAccountId = UUID.randomUUID()
+
+    val prisonParentAccountId = UUID.randomUUID()
     val prisonSubAccountId = UUID.randomUUID()
+
+    @BeforeEach
+    fun setup() {
+      generalLedgerApi.stubGetSubAccount(
+        parentReference = prisonId,
+        subAccountReference = "1502:ADV",
+        subAccountID = prisonSubAccountId,
+        parentAccountId = prisonParentAccountId,
+      )
+
+      generalLedgerApi.stubGetSubAccount(
+        parentReference = prisonNumber,
+        subAccountReference = "SPENDS",
+        subAccountID = prisonerSubAccountId,
+        parentAccountId = prisonerParentAccountId,
+      )
+    }
 
     @Test
     fun `should return 201 and the created record`() {
       val advanceRecordRequest = CreateAdvanceRecordRequest(
         legacyPaymentProfileId = 1234,
         legacyInformationNumber = "5678",
-        prisonNumber = "A1234BC",
-        prisonID = "LEI",
+        prisonNumber = prisonNumber,
+        prisonID = prisonId,
         amount = 10,
         createdOn = Instant.now(),
         repaymentStartDate = Instant.now(),
@@ -56,8 +76,6 @@ class RecordIntegrationTest : IntegrationTestBase() {
         reference = "REF",
         createdBy = "USER",
         status = AdvanceStatus.ACTIVE,
-        prisonerSubAccountId = prisonerSubAccountId,
-        prisonSubAccountId = prisonSubAccountId,
         legacyTransactionId = 123,
       )
 
@@ -82,7 +100,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
 
       assertThat(responseBody.id).isNotNull
       assertThat(responseBody.legacyInformationNumber).isEqualTo(advanceRecordRequest.legacyInformationNumber)
-      wiremockGLClient.verifyThat(1, postRequestedFor(urlPathMatching("/transactions")))
+      generalLedgerApi.verify(1, postRequestedFor(urlPathMatching("/transactions")))
     }
 
     @Test
@@ -91,8 +109,8 @@ class RecordIntegrationTest : IntegrationTestBase() {
       val advanceRecordRequest = CreateAdvanceRecordRequest(
         legacyPaymentProfileId = 1234,
         legacyInformationNumber = "5678",
-        prisonNumber = "A1234BC",
-        prisonID = "LEI",
+        prisonNumber = prisonNumber,
+        prisonID = prisonId,
         amount = 10,
         createdOn = advanceTime,
         repaymentStartDate = advanceTime,
@@ -100,8 +118,6 @@ class RecordIntegrationTest : IntegrationTestBase() {
         reference = "REF",
         createdBy = "USER",
         status = AdvanceStatus.ACTIVE,
-        prisonerSubAccountId = prisonerSubAccountId,
-        prisonSubAccountId = prisonSubAccountId,
         legacyTransactionId = 123,
       )
 
@@ -136,7 +152,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
         .responseBody!!
 
       assertThat(responseBody1).isEqualTo(responseBody2)
-      wiremockGLClient.verifyThat(2, postRequestedFor(urlPathMatching("/transactions")))
+      generalLedgerApi.verify(2, postRequestedFor(urlPathMatching("/transactions")))
     }
 
     @Test
@@ -144,8 +160,8 @@ class RecordIntegrationTest : IntegrationTestBase() {
       val advanceRecordRequest = CreateAdvanceRecordRequest(
         legacyPaymentProfileId = 1234,
         legacyInformationNumber = "5678",
-        prisonNumber = "A1234BC",
-        prisonID = "LEI",
+        prisonNumber = prisonNumber,
+        prisonID = prisonId,
         amount = 10,
         createdOn = Instant.now(),
         repaymentStartDate = Instant.now(),
@@ -153,8 +169,6 @@ class RecordIntegrationTest : IntegrationTestBase() {
         reference = "REF",
         createdBy = "USER",
         status = AdvanceStatus.ACTIVE,
-        prisonerSubAccountId = prisonerSubAccountId,
-        prisonSubAccountId = prisonSubAccountId,
         legacyTransactionId = 123,
       )
 
@@ -185,8 +199,8 @@ class RecordIntegrationTest : IntegrationTestBase() {
       val advanceRecordRequest = CreateAdvanceRecordRequest(
         legacyPaymentProfileId = 1234,
         legacyInformationNumber = "5678",
-        prisonNumber = "A1234BC",
-        prisonID = "LEI",
+        prisonNumber = prisonNumber,
+        prisonID = prisonId,
         amount = 10,
         createdOn = Instant.now(),
         repaymentStartDate = Instant.now(),
@@ -194,8 +208,6 @@ class RecordIntegrationTest : IntegrationTestBase() {
         reference = "REF",
         createdBy = "USER",
         status = AdvanceStatus.ACTIVE,
-        prisonerSubAccountId = UUID.randomUUID(),
-        prisonSubAccountId = UUID.randomUUID(),
       )
 
       webTestClient.post().uri("/advances")
@@ -211,8 +223,8 @@ class RecordIntegrationTest : IntegrationTestBase() {
       val advanceRecordRequest = CreateAdvanceRecordRequest(
         legacyPaymentProfileId = 1234,
         legacyInformationNumber = "5678",
-        prisonNumber = "A1234BC",
-        prisonID = "LEI",
+        prisonNumber = prisonNumber,
+        prisonID = prisonId,
         amount = 10,
         createdOn = Instant.now(),
         repaymentStartDate = Instant.now(),
@@ -220,8 +232,6 @@ class RecordIntegrationTest : IntegrationTestBase() {
         reference = "REF",
         createdBy = "USER",
         status = AdvanceStatus.ACTIVE,
-        prisonerSubAccountId = prisonerSubAccountId,
-        prisonSubAccountId = prisonSubAccountId,
         legacyTransactionId = 123,
       )
 
@@ -235,7 +245,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
         .expectStatus().isEqualTo(HttpStatus.BAD_GATEWAY_502)
         .expectBody<ErrorResponse>()
 
-      wiremockGLClient.verifyThat(1, postRequestedFor(urlPathMatching("/transactions")))
+      generalLedgerApi.verify(1, postRequestedFor(urlPathMatching("/transactions")))
     }
   }
 }

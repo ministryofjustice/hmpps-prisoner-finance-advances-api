@@ -7,7 +7,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RO
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RW
@@ -46,7 +45,8 @@ class RecordIntegrationTest : IntegrationTestBase() {
     val prisonParentAccountId = UUID.randomUUID()
     val prisonSubAccountId = UUID.randomUUID()
 
-    fun stubGetSubAccounts() {
+    @BeforeEach
+    fun setup() {
       generalLedgerApi.stubGetSubAccount(
         parentReference = prisonId,
         subAccountReference = "1502:ADV",
@@ -60,11 +60,6 @@ class RecordIntegrationTest : IntegrationTestBase() {
         subAccountID = prisonerSubAccountId,
         parentAccountId = prisonerParentAccountId,
       )
-    }
-
-    @BeforeEach
-    fun setup() {
-      stubGetSubAccounts()
     }
 
     @Test

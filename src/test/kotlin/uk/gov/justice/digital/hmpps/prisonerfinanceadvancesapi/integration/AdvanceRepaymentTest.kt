@@ -22,7 +22,6 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.PagedResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 @ExtendWith(GeneralLedgerApiExtension::class, HmppsAuthApiExtension::class)
@@ -449,11 +448,11 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
 
     integrationTestHelpers.stubGetSubAccounts(
       prisonId = prisonId,
-      prisonNumber =prisonerNumber,
+      prisonNumber = prisonerNumber,
       prisonerSubAccountId = prisonerSubAccountId,
       prisonSubAccountId = prisonSubAccountId,
       prisonerParentAccountId = prisonParentAccountId,
-      prisonParentAccountId = prisonerParentAccountId
+      prisonParentAccountId = prisonerParentAccountId,
     )
 
     generalLedgerApi.stubPostTransactionReturnsInternalServerError()

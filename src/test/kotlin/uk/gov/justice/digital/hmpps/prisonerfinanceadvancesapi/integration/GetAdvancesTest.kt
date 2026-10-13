@@ -3,7 +3,6 @@ package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RW
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.GeneralLedgerApiExtension.Companion.generalLedgerApi
@@ -15,7 +14,6 @@ import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.util.UUID
 
 class GetAdvancesTest : IntegrationTestBase() {
-
 
   val prisonerParentAccountId = UUID.randomUUID()
   val prisonerSubAccountId = UUID.randomUUID()

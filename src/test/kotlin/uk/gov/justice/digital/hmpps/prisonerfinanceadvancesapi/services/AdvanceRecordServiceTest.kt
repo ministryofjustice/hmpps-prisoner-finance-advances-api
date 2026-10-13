@@ -13,7 +13,6 @@ import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argThat
 import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.times
 import org.mockito.kotlin.whenever
@@ -396,7 +395,6 @@ class AdvanceRecordServiceTest {
   val savedPaymentEntity = argumentCaptor<AdvancePaymentEntity>()
   val savedAdvanceEntity = argumentCaptor<AdvanceRecordEntity>()
 
-
   val glTransactionId = UUID.randomUUID()
   val prisonSubAccount = UUID.randomUUID()
   val prisonerSubAccount = UUID.randomUUID()
@@ -607,8 +605,7 @@ class AdvanceRecordServiceTest {
     }
 
     @Test
-    fun `should return the transaction without throwing if it already exists in the mapping table`(){
-
+    fun `should return the transaction without throwing if it already exists in the mapping table`() {
       val legacyTransactionId = 123L
 
       val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
@@ -627,35 +624,47 @@ class AdvanceRecordServiceTest {
         transactionId = glUUID,
         prisonerPostingType = PostingType.DR,
         amount = advanceRepaymentRequest.amount,
-        timestamp =advanceRepaymentRequest.createdAt,
-        createdBy = advanceRepaymentRequest.createdBy
+        timestamp = advanceRepaymentRequest.createdAt,
+        createdBy = advanceRepaymentRequest.createdBy,
       )
 
       whenever(advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceId))
         .thenReturn(listOf(advancePaymentToPrisonerEntity))
 
-      whenever(advanceRecordService.postAdvanceRepaymentTransaction(
-        advanceRepaymentRequest,
-        prisonID,
-        prisonNumber,
-        idempotency)).thenAnswer(Answer { glUUID })
+      whenever(
+        advanceRecordService.postAdvanceRepaymentTransaction(
+          advanceRepaymentRequest,
+          prisonID,
+          prisonNumber,
+          idempotency,
+        ),
+      ).thenAnswer(Answer { glUUID })
 
       whenever(advanceRecordRepository.saveAndFlush(savedAdvanceEntity.capture()))
         .thenAnswer { it.arguments[0] }
 
-      whenever(advancePaymentRepository.saveAndFlush<AdvancePaymentEntity>(
-        argThat { this.transactionId == glUUID }))
+      whenever(
+        advancePaymentRepository.saveAndFlush<AdvancePaymentEntity>(
+          argThat { this.transactionId == glUUID },
+        ),
+      )
         .thenThrow(DataIntegrityViolationException("uc_advance_record_payments_transaction_id"))
 
       whenever(advancePaymentRepository.findByTransactionId(glUUID)).thenReturn(advancePaymentEntity)
 
       assertDoesNotThrow {
-        advanceRecordService.repayAdvance(advanceRepaymentRequest,
-          advanceId = advanceId, idempotencyKey = idempotency)
+        advanceRecordService.repayAdvance(
+          advanceRepaymentRequest,
+          advanceId = advanceId,
+          idempotencyKey = idempotency,
+        )
       }
 
-      val savedRepayment = advanceRecordService.repayAdvance(advanceRepaymentRequest,
-        advanceId = advanceId, idempotencyKey = idempotency)
+      val savedRepayment = advanceRecordService.repayAdvance(
+        advanceRepaymentRequest,
+        advanceId = advanceId,
+        idempotencyKey = idempotency,
+      )
 
       assertThat(savedRepayment.transactionId).isEqualTo(glUUID)
     }

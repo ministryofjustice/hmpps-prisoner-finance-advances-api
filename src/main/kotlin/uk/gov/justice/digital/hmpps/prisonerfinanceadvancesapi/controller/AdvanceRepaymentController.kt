@@ -33,7 +33,7 @@ class AdvanceRepaymentController(
       ApiResponse(
         responseCode = "201",
         description = "Advance Repayment Created",
-        content = [Content(mediaType = "application/json")],
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = AdvanceRepaymentResponse::class))],
       ),
       ApiResponse(
         responseCode = "400",

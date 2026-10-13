@@ -19,7 +19,6 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.Adva
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.ErrorResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
-import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services.InMemoryAccountCache
 import wiremock.org.eclipse.jetty.http.HttpStatus
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -28,14 +27,11 @@ import java.util.UUID
 @ExtendWith(GeneralLedgerApiExtension::class, HmppsAuthApiExtension::class)
 class RecordIntegrationTest : IntegrationTestBase() {
 
-  @Autowired lateinit var memoryAccountCache: InMemoryAccountCache
-
   @BeforeEach
   fun clearDB() {
     integrationTestHelpers.clearDB()
     hmppsAuth.stubGrantToken()
     generalLedgerApi.resetAll()
-    memoryAccountCache.clear()
   }
 
   @Nested

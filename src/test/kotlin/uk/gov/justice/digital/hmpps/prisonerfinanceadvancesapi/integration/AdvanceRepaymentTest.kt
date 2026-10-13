@@ -21,15 +21,12 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRepaymentResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.PagedResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
-import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services.InMemoryAccountCache
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 @ExtendWith(GeneralLedgerApiExtension::class, HmppsAuthApiExtension::class)
 class AdvanceRepaymentTest : IntegrationTestBase() {
-
-  @Autowired lateinit var memoryAccountCache: InMemoryAccountCache
 
   @Autowired lateinit var advanceRecordRepository: AdvanceRecordRepository
 
@@ -38,7 +35,6 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
     integrationTestHelpers.clearDB()
     hmppsAuth.stubGrantToken()
     generalLedgerApi.resetAll()
-    memoryAccountCache.clear()
   }
 
   val prisonerNumber = "A1234AA"
@@ -156,76 +152,6 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
     val responseAdvance = prisonerAdvances.content[0]
     assertThat(responseAdvance.id).isEqualTo(advanceCreated.id)
     assertThat(responseAdvance.status).isEqualTo(AdvanceStatus.REPAID)
-  }
-
-  @Test
-  fun `should respond with 201 when the same transaction is posted twice`() {
-    val idempotencyKey = UUID.randomUUID()
-    val advanceCreated = this.integrationTestHelpers.createAdvance(
-      prisonNumber = prisonerNumber,
-      legacyPaymentProfileId = 123,
-      legacyInformationNumber = "1234",
-      amount = 10,
-      prisonId = prisonId,
-      repaymentAmount = 5,
-      status = AdvanceStatus.ACTIVE,
-      prisonerSubAccountId = prisonerSubAccountId,
-      prisonSubAccountId = prisonSubAccountId,
-      prisonParentAccountId = prisonParentAccountId,
-      prisonerParentAccountId = prisonerParentAccountId,
-    )
-
-    val request = CreateAdvanceRepaymentRequest(
-      amount = 1,
-      legacyTransactionId = 22222,
-      createdAt = Instant.now(),
-      createdBy = "TEST",
-      description = "Test description",
-    )
-
-    generalLedgerApi.stubPostTransaction(
-      creditorSubAccountUuid = prisonSubAccountId.toString(),
-      debtorSubAccountUuid = prisonerSubAccountId.toString(),
-      returnUUID = UUID.randomUUID(),
-      amount = request.amount,
-      legacyTransactionId = request.legacyTransactionId.toString(),
-    )
-
-    val responseOne = webTestClient.post().uri("/advances/${advanceCreated.id}/repay")
-      .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
-      .headers(setIdempotencyKey(idempotencyKey))
-      .bodyValue(request)
-      .exchange()
-      .expectStatus()
-      .isCreated
-      .expectBody<AdvanceRepaymentResponse>()
-      .returnResult()
-      .responseBody!!
-
-    assertThat(responseOne.id).isNotNull()
-    assertThat(responseOne.advanceId).isEqualTo(advanceCreated.id)
-    assertThat(responseOne.amount).isEqualTo(request.amount)
-    assertThat(responseOne.createdAt.truncatedTo(ChronoUnit.MILLIS)).isEqualTo(request.createdAt.truncatedTo(ChronoUnit.MILLIS))
-    assertThat(responseOne.createdBy).isEqualTo(request.createdBy)
-    assertThat(responseOne.legacyTransactionId).isEqualTo(request.legacyTransactionId)
-
-    val responseTwo = webTestClient.post().uri("/advances/${advanceCreated.id}/repay")
-      .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
-      .headers(setIdempotencyKey(idempotencyKey))
-      .bodyValue(request)
-      .exchange()
-      .expectStatus()
-      .isCreated
-      .expectBody<AdvanceRepaymentResponse>()
-      .returnResult()
-      .responseBody!!
-
-    assertThat(responseTwo.id).isEqualTo(responseOne.id)
-    assertThat(responseTwo.advanceId).isEqualTo(advanceCreated.id)
-    assertThat(responseTwo.amount).isEqualTo(request.amount)
-    assertThat(responseTwo.createdAt.truncatedTo(ChronoUnit.MILLIS)).isEqualTo(request.createdAt.truncatedTo(ChronoUnit.MILLIS))
-    assertThat(responseTwo.createdBy).isEqualTo(request.createdBy)
-    assertThat(responseTwo.legacyTransactionId).isEqualTo(request.legacyTransactionId)
   }
 
   @Test
@@ -520,6 +446,16 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
     )
 
     generalLedgerApi.resetAll()
+
+    integrationTestHelpers.stubGetSubAccounts(
+      prisonId = prisonId,
+      prisonNumber =prisonerNumber,
+      prisonerSubAccountId = prisonerSubAccountId,
+      prisonSubAccountId = prisonSubAccountId,
+      prisonerParentAccountId = prisonParentAccountId,
+      prisonParentAccountId = prisonerParentAccountId
+    )
+
     generalLedgerApi.stubPostTransactionReturnsInternalServerError()
 
     val response = webTestClient.post().uri("/advances/${advanceCreated.id}/repay")

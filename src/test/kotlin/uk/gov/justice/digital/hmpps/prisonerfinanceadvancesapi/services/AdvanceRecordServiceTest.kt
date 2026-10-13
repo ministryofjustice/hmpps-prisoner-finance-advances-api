@@ -4,16 +4,20 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.Mockito.verify
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
+import org.mockito.kotlin.argThat
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.times
 import org.mockito.kotlin.whenever
+import org.mockito.stubbing.Answer
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.clients.GeneralLedgerApiClient
@@ -56,7 +60,6 @@ class AdvanceRecordServiceTest {
       advancePaymentRepository = advancePaymentRepository,
       insertService = InsertService(advanceRecordRepository, advancePaymentRepository),
       generalLedgerApiClient = generalLedgerApiClient,
-      memoryAccountCache = InMemoryAccountCache(),
       accountResolver = accountResolver,
     )
   }
@@ -119,7 +122,6 @@ class AdvanceRecordServiceTest {
           accountResolver.resolveSubAccount(
             parentRef = eq(request.prisonID),
             subRef = eq("1502:ADV"),
-            cache = any(),
           )
         }.thenReturn(prisonSubAccount)
 
@@ -127,7 +129,6 @@ class AdvanceRecordServiceTest {
           accountResolver.resolveSubAccount(
             parentRef = eq(request.prisonNumber),
             subRef = eq("SPENDS"),
-            cache = any(),
           )
         }.thenReturn(prisonerSubAccount)
 
@@ -243,7 +244,6 @@ class AdvanceRecordServiceTest {
           accountResolver.resolveSubAccount(
             parentRef = eq(request.prisonID),
             subRef = eq("1502:ADV"),
-            cache = any(),
           )
         }.thenReturn(UUID.randomUUID())
 
@@ -251,7 +251,6 @@ class AdvanceRecordServiceTest {
           accountResolver.resolveSubAccount(
             parentRef = eq(request.prisonNumber),
             subRef = eq("SPENDS"),
-            cache = any(),
           )
         }.thenReturn(UUID.randomUUID())
 
@@ -313,7 +312,6 @@ class AdvanceRecordServiceTest {
           accountResolver.resolveSubAccount(
             parentRef = eq(request.prisonID),
             subRef = eq("1502:ADV"),
-            cache = any(),
           )
         }.thenReturn(UUID.randomUUID())
 
@@ -321,7 +319,6 @@ class AdvanceRecordServiceTest {
           accountResolver.resolveSubAccount(
             parentRef = eq(request.prisonNumber),
             subRef = eq("SPENDS"),
-            cache = any(),
           )
         }.thenReturn(UUID.randomUUID())
 
@@ -399,6 +396,7 @@ class AdvanceRecordServiceTest {
   val savedPaymentEntity = argumentCaptor<AdvancePaymentEntity>()
   val savedAdvanceEntity = argumentCaptor<AdvanceRecordEntity>()
 
+
   val glTransactionId = UUID.randomUUID()
   val prisonSubAccount = UUID.randomUUID()
   val prisonerSubAccount = UUID.randomUUID()
@@ -445,7 +443,6 @@ class AdvanceRecordServiceTest {
         accountResolver.resolveSubAccount(
           parentRef = eq(prisonID),
           subRef = eq("1502:ADV"),
-          cache = any(),
         )
       }.thenReturn(prisonSubAccount)
 
@@ -453,7 +450,6 @@ class AdvanceRecordServiceTest {
         accountResolver.resolveSubAccount(
           parentRef = eq(prisonNumber),
           subRef = eq("SPENDS"),
-          cache = any(),
         )
       }.thenReturn(prisonerSubAccount)
 
@@ -608,6 +604,60 @@ class AdvanceRecordServiceTest {
       assertThat(updatedAdvance.id).isEqualTo(advanceId)
       assertThat(updatedAdvance.status).isEqualTo(AdvanceStatus.ACTIVE)
       assertThat(updatedAdvance.updatedAt).isNull()
+    }
+
+    @Test
+    fun `should return the transaction without throwing if it already exists in the mapping table`(){
+
+      val legacyTransactionId = 123L
+
+      val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
+        amount = 1,
+        legacyTransactionId = legacyTransactionId,
+        createdAt = Instant.now(),
+        createdBy = "TEST",
+        description = "Test description",
+      )
+
+      val glUUID = UUID.randomUUID()
+
+      val advancePaymentEntity = AdvancePaymentEntity(
+        id = UUID.randomUUID(),
+        advanceRecordId = advanceEntity.id,
+        transactionId = glUUID,
+        prisonerPostingType = PostingType.DR,
+        amount = advanceRepaymentRequest.amount,
+        timestamp =advanceRepaymentRequest.createdAt,
+        createdBy = advanceRepaymentRequest.createdBy
+      )
+
+      whenever(advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceId))
+        .thenReturn(listOf(advancePaymentToPrisonerEntity))
+
+      whenever(advanceRecordService.postAdvanceRepaymentTransaction(
+        advanceRepaymentRequest,
+        prisonID,
+        prisonNumber,
+        idempotency)).thenAnswer(Answer { glUUID })
+
+      whenever(advanceRecordRepository.saveAndFlush(savedAdvanceEntity.capture()))
+        .thenAnswer { it.arguments[0] }
+
+      whenever(advancePaymentRepository.saveAndFlush<AdvancePaymentEntity>(
+        argThat { this.transactionId == glUUID }))
+        .thenThrow(DataIntegrityViolationException("uc_advance_record_payments_transaction_id"))
+
+      whenever(advancePaymentRepository.findByTransactionId(glUUID)).thenReturn(advancePaymentEntity)
+
+      assertDoesNotThrow {
+        advanceRecordService.repayAdvance(advanceRepaymentRequest,
+          advanceId = advanceId, idempotencyKey = idempotency)
+      }
+
+      val savedRepayment = advanceRecordService.repayAdvance(advanceRepaymentRequest,
+        advanceId = advanceId, idempotencyKey = idempotency)
+
+      assertThat(savedRepayment.transactionId).isEqualTo(glUUID)
     }
   }
 

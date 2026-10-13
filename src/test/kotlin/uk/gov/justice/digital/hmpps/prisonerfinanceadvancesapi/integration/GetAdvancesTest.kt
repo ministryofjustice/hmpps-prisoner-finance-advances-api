@@ -11,13 +11,11 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wirem
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.PagedResponse
-import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services.InMemoryAccountCache
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.util.UUID
 
 class GetAdvancesTest : IntegrationTestBase() {
 
-  @Autowired lateinit var memoryAccountCache: InMemoryAccountCache
 
   val prisonerParentAccountId = UUID.randomUUID()
   val prisonerSubAccountId = UUID.randomUUID()
@@ -32,7 +30,6 @@ class GetAdvancesTest : IntegrationTestBase() {
     this.integrationTestHelpers.clearDB()
     hmppsAuth.stubGrantToken()
     generalLedgerApi.resetAll()
-    memoryAccountCache.clear()
   }
 
   @Test

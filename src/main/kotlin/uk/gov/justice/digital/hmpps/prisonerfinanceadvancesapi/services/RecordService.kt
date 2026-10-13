@@ -30,7 +30,6 @@ class RecordService(
   private val advancePaymentRepository: AdvancePaymentRepository,
   private val insertService: InsertService,
   private val generalLedgerApiClient: GeneralLedgerApiClient,
-  val memoryAccountCache: InMemoryAccountCache = InMemoryAccountCache(),
   private val accountResolver: GeneralLedgerAccountResolver,
 ) {
   private val prisonSubAccountRefAdvances = "1502:ADV"
@@ -43,13 +42,11 @@ class RecordService(
     val prisonAccount = accountResolver.resolveSubAccount(
       createAdvanceRecordRequest.prisonID,
       prisonSubAccountRefAdvances,
-      memoryAccountCache,
     )
 
     val prisonerAccount = accountResolver.resolveSubAccount(
       createAdvanceRecordRequest.prisonNumber,
       prisonerSubAccountRefAdvances,
-      memoryAccountCache,
     )
 
     return generalLedgerApiClient.postTransaction(
@@ -79,7 +76,7 @@ class RecordService(
     )
   }
 
-  private fun postAdvanceRepaymentTransaction(
+  fun postAdvanceRepaymentTransaction(
     createAdvanceRepaymentRequest: CreateAdvanceRepaymentRequest,
     prisonId: String,
     prisonNumber: String,
@@ -88,13 +85,11 @@ class RecordService(
     val prisonAccount = accountResolver.resolveSubAccount(
       prisonId,
       prisonSubAccountRefAdvances,
-      memoryAccountCache,
     )
 
     val prisonerAccount = accountResolver.resolveSubAccount(
       prisonNumber,
       prisonerSubAccountRefAdvances,
-      memoryAccountCache,
     )
     return generalLedgerApiClient.postTransaction(
       CreateTransactionRequest(

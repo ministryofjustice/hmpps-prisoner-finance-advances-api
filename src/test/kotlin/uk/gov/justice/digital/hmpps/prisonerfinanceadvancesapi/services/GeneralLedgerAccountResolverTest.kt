@@ -50,9 +50,7 @@ class GeneralLedgerAccountResolverTest {
           ),
         )
 
-      val cache = InMemoryAccountCache()
-
-      accountResolver.resolveSubAccount(offenderId, "CASH", cache)
+      accountResolver.resolveSubAccount(offenderId, "CASH")
 
       verify(apiClient).findSubAccount(offenderId, subAccountReference)
     }
@@ -65,10 +63,8 @@ class GeneralLedgerAccountResolverTest {
       whenever(apiClient.findSubAccount(offenderId, subAccountReference))
         .thenReturn(null)
 
-      val cache = InMemoryAccountCache()
-
       val exception = assertThrows<CustomException> {
-        accountResolver.resolveSubAccount(offenderId, "CASH", cache)
+        accountResolver.resolveSubAccount(offenderId, "CASH")
       }
 
       assertThat(exception.status).isEqualTo(HttpStatus.NOT_FOUND)

@@ -10,10 +10,16 @@ import java.util.UUID
 class GeneralLedgerAccountResolver(
   private val generalLedgerApi: GeneralLedgerApiClient,
 ) {
-  fun resolveSubAccount(parentRef: String, subRef: String, cache: InMemoryAccountCache): UUID = cache.getOrPut(subRef) {
-    generalLedgerApi.findSubAccount(
+  fun resolveSubAccount(parentRef: String, subRef: String): UUID {
+    val subAccount = generalLedgerApi.findSubAccount(
       parentReference = parentRef,
       subAccountReference = subRef,
-    ) ?: throw CustomException("Sub account not found", HttpStatus.NOT_FOUND)
-  }.id
+    )
+
+    if (subAccount == null) {
+      throw CustomException("Sub account not found", HttpStatus.NOT_FOUND)
+    }
+
+    return subAccount.id
+  }
 }

@@ -97,7 +97,7 @@ class RecordService(
         description = createAdvanceRepaymentRequest.description,
         timestamp = createAdvanceRepaymentRequest.createdAt,
         amount = createAdvanceRepaymentRequest.amount,
-        entrySequence = 1,
+        entrySequence = createAdvanceRepaymentRequest.entrySequence.toLong(),
         postings = listOf(
           CreatePostingRequest(
             subAccountId = prisonerAccount,

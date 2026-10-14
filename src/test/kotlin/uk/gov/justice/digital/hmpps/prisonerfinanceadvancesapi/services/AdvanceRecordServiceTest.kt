@@ -385,6 +385,7 @@ class AdvanceRecordServiceTest {
     createdAt = Instant.now(),
     createdBy = "TEST",
     description = "Test description",
+    entrySequence = 2,
   )
   val prisonID = "LEI"
   val prisonNumber = "A123DX"
@@ -482,7 +483,7 @@ class AdvanceRecordServiceTest {
 
       assertThat(glRequest.reference).isEqualTo("")
       assertThat(glRequest.amount).isEqualTo(advanceRepaymentRequest.amount)
-      assertThat(glRequest.entrySequence).isEqualTo(1)
+      assertThat(glRequest.entrySequence).isEqualTo(2)
       assertThat(glRequest.legacyTransactionId).isEqualTo(advanceRepaymentRequest.legacyTransactionId)
       assertThat(glRequest.timestamp).isEqualTo(advanceRepaymentRequest.createdAt)
       assertThat(glRequest.description).isEqualTo(advanceRepaymentRequest.description)
@@ -548,6 +549,7 @@ class AdvanceRecordServiceTest {
         createdAt = Instant.now(),
         createdBy = "TEST",
         description = "Test description",
+        entrySequence = 2,
       )
 
       advanceRepaymentResponse = advanceRecordService.repayAdvance(
@@ -582,6 +584,7 @@ class AdvanceRecordServiceTest {
         createdAt = Instant.now(),
         createdBy = "TEST",
         description = "Test description",
+        entrySequence = 2,
       )
 
       advanceRepaymentResponse = advanceRecordService.repayAdvance(
@@ -614,6 +617,7 @@ class AdvanceRecordServiceTest {
         createdAt = Instant.now(),
         createdBy = "TEST",
         description = "Test description",
+        entrySequence = 2,
       )
 
       val glUUID = UUID.randomUUID()
@@ -688,6 +692,7 @@ class AdvanceRecordServiceTest {
         createdAt = Instant.now(),
         createdBy = "TEST",
         description = "Test description",
+        entrySequence = 2,
       )
 
       val exception = assertThrows<CustomException> {
@@ -730,6 +735,7 @@ class AdvanceRecordServiceTest {
         createdAt = Instant.now(),
         createdBy = "TEST",
         description = "Test description",
+        entrySequence = 2,
       )
 
       val exception = assertThrows<CustomException> {
@@ -772,6 +778,7 @@ class AdvanceRecordServiceTest {
         createdAt = Instant.now(),
         createdBy = "TEST",
         description = "Test description",
+        entrySequence = 2,
       )
 
       val exception = assertThrows<CustomException> {

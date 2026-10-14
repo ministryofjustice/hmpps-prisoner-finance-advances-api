@@ -65,6 +65,7 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
       createdAt = Instant.now(),
       createdBy = "TEST",
       description = "Test description",
+      entrySequence = 2,
     )
 
     generalLedgerApi.stubPostTransaction(
@@ -116,6 +117,7 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
       createdAt = Instant.now(),
       createdBy = "TEST",
       description = "Test description",
+      entrySequence = 2,
     )
 
     generalLedgerApi.stubPostTransaction(
@@ -161,6 +163,7 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
       createdAt = Instant.now(),
       createdBy = "TEST",
       description = "Test description",
+      entrySequence = 2,
     )
 
     val response = webTestClient.post().uri("/advances/INVALID/repay")
@@ -186,6 +189,7 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
       createdAt = Instant.now(),
       createdBy = "TEST",
       description = "Test description",
+      entrySequence = 2,
     )
 
     val response = webTestClient.post().uri("/advances/${UUID.randomUUID()}/repay")
@@ -225,6 +229,7 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
       createdAt = Instant.now(),
       createdBy = "TEST",
       description = "Test description",
+      entrySequence = 2,
     )
 
     generalLedgerApi.stubPostTransaction(
@@ -271,6 +276,7 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
       createdAt = Instant.now(),
       createdBy = "TEST",
       description = "Test description",
+      entrySequence = 2,
     )
 
     generalLedgerApi.stubPostTransaction(
@@ -313,6 +319,7 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
       createdAt = Instant.now(),
       createdBy = "TEST",
       description = "Test description",
+      entrySequence = 2,
     )
 
     generalLedgerApi.stubPostTransaction(
@@ -364,6 +371,7 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
       createdAt = Instant.now(),
       createdBy = "TEST",
       description = "Test description",
+      entrySequence = 2,
     )
 
     val response = webTestClient.post().uri("/advances/${advanceRecordEntity.id}/repay")
@@ -388,6 +396,7 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
       createdAt = Instant.now(),
       createdBy = "TEST",
       description = "Test description",
+      entrySequence = 2,
     )
 
     webTestClient.post().uri("/advances/${UUID.randomUUID()}/repay")
@@ -406,9 +415,10 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
       createdAt = Instant.now(),
       createdBy = "TEST",
       description = "Test description",
+      entrySequence = 2,
     )
 
-    val response = webTestClient.post().uri("/advances/${UUID.randomUUID()}/repay")
+     webTestClient.post().uri("/advances/${UUID.randomUUID()}/repay")
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
       .headers(setIdempotencyKey(UUID.randomUUID()))
       .bodyValue(request)
@@ -442,6 +452,7 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
       createdAt = Instant.now(),
       createdBy = "TEST",
       description = "Test description",
+      entrySequence = 2,
     )
 
     generalLedgerApi.resetAll()

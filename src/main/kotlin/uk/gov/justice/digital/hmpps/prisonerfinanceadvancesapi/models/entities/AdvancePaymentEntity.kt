@@ -42,7 +42,7 @@ class AdvancePaymentEntity(
   var createdBy: String,
 ) {
 
-  fun toResponse(legacyTransactionId: Long?, description: String) = AdvanceRepaymentResponse(
+  fun toResponse(legacyTransactionId: Long?, description: String, entrySequence: Int) = AdvanceRepaymentResponse(
     id = this.id,
     advanceId = this.advanceRecordId,
     amount = this.amount,
@@ -51,5 +51,6 @@ class AdvancePaymentEntity(
     legacyTransactionId = legacyTransactionId,
     transactionId = this.transactionId,
     description = description,
+    entrySequence = entrySequence,
   )
 }

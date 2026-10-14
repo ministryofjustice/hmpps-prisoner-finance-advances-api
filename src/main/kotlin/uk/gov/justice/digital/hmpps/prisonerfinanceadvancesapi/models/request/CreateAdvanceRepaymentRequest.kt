@@ -18,4 +18,7 @@ data class CreateAdvanceRepaymentRequest(
 
   @field:Schema(description = "The description of the repayment transaction", example = "A description about this repayment", required = true)
   val description: String,
+
+  @field:Schema(description = "The entry sequence of the transaction", example = "1", required = true)
+  val entrySequence: Int,
 )

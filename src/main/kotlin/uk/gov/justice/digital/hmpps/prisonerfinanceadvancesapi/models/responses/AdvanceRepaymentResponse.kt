@@ -28,4 +28,7 @@ class AdvanceRepaymentResponse(
 
   @field:Schema(description = "The description of the repayment transaction", example = "A description about this repayment")
   val description: String,
+
+  @field:Schema(description = "The entry sequence of the transaction", example = "1")
+  val entrySequence: Int,
 )

@@ -249,6 +249,7 @@ class RecordService(
     return advancePayment.toResponse(
       legacyTransactionId = repaymentRequest.legacyTransactionId,
       description = repaymentRequest.description,
+      entrySequence = repaymentRequest.entrySequence,
     )
   }
 }

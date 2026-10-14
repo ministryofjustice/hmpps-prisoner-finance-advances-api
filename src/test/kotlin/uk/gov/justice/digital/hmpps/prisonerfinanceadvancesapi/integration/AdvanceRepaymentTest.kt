@@ -68,10 +68,11 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
       entrySequence = 2,
     )
 
+    val glUUID = UUID.randomUUID()
     generalLedgerApi.stubPostTransaction(
       creditorSubAccountUuid = prisonSubAccountId.toString(),
       debtorSubAccountUuid = prisonerSubAccountId.toString(),
-      returnUUID = UUID.randomUUID(),
+      returnUUID = glUUID,
       amount = request.amount,
       legacyTransactionId = request.legacyTransactionId.toString(),
     )
@@ -93,6 +94,9 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
     assertThat(response.createdAt).isEqualTo(request.createdAt)
     assertThat(response.createdBy).isEqualTo(request.createdBy)
     assertThat(response.legacyTransactionId).isEqualTo(request.legacyTransactionId)
+    assertThat(response.entrySequence).isEqualTo(request.entrySequence)
+    assertThat(response.description).isEqualTo(request.description)
+    assertThat(response.transactionId).isEqualTo(glUUID)
   }
 
   @Test

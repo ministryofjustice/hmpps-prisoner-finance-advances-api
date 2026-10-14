@@ -418,7 +418,7 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
       entrySequence = 2,
     )
 
-     webTestClient.post().uri("/advances/${UUID.randomUUID()}/repay")
+    webTestClient.post().uri("/advances/${UUID.randomUUID()}/repay")
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
       .headers(setIdempotencyKey(UUID.randomUUID()))
       .bodyValue(request)

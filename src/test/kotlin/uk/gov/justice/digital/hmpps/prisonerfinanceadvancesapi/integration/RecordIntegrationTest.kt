@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wirem
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.ErrorResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceWriteOffRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import wiremock.org.eclipse.jetty.http.HttpStatus
@@ -246,6 +247,54 @@ class RecordIntegrationTest : IntegrationTestBase() {
         .expectBody<ErrorResponse>()
 
       generalLedgerApi.verify(1, postRequestedFor(urlPathMatching("/transactions")))
+    }
+  }
+
+  @Nested
+  inner class WriteOffAdvance {
+
+    val prisonNumber = "A1234AA"
+    val prisonId = "LEI"
+    val prisonerSubAccountId: UUID = UUID.randomUUID()
+    val prisonSubAccountId: UUID = UUID.randomUUID()
+    val prisonParentAccountId: UUID = UUID.randomUUID()
+    val prisonerParentAccountId: UUID = UUID.randomUUID()
+
+    @Test
+    fun `should return 200 when an advance has been successfully written off`() {
+
+      val advanceCreated = integrationTestHelpers.createAdvance(
+        prisonNumber = prisonNumber,
+        legacyPaymentProfileId = 123,
+        legacyInformationNumber = "1234",
+        amount = 10,
+        prisonId = prisonId,
+        repaymentAmount = 5,
+        status = AdvanceStatus.ACTIVE,
+        prisonerSubAccountId = prisonerSubAccountId,
+        prisonSubAccountId = prisonSubAccountId,
+        prisonParentAccountId = prisonParentAccountId,
+        prisonerParentAccountId = prisonerParentAccountId,
+      )
+
+      val advanceWriteOffRequest = AdvanceWriteOffRequest(
+        amount = 10,
+        writeOffDateTime = Instant.now(),
+        writtenOffBy = "TEST"
+      )
+
+      val response = webTestClient.put().uri("/advances/${advanceCreated.id}/write-off")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .bodyValue(advanceWriteOffRequest)
+        .exchange()
+        .expectStatus()
+        .isOk
+        .expectBody<AdvanceRecordResponse>()
+        .returnResult()
+        .responseBody!!
+
+      assertThat(response.status).isEqualTo(AdvanceStatus.WRITTEN_OFF)
+      assertThat(response.id).isEqualTo(advanceCreated.id)
     }
   }
 }

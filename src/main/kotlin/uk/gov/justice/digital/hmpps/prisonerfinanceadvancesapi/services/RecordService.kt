@@ -10,6 +10,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.exceptions.Custom
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.PostingType
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvancePaymentEntity
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceRecordEntity
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceWriteOffEntity
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreatePostingRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreateTransactionRequest
@@ -20,6 +21,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.PagedResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvancePaymentRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceWriteOffRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.utils.toPageResponse
 import java.time.Instant
 import java.util.UUID
@@ -31,6 +33,7 @@ class RecordService(
   private val insertService: InsertService,
   private val generalLedgerApiClient: GeneralLedgerApiClient,
   private val accountResolver: GeneralLedgerAccountResolver,
+  private val advanceWriteOffRepository: AdvanceWriteOffRepository
 ) {
   private val prisonSubAccountRefAdvances = "1502:ADV"
   private val prisonerSubAccountRefAdvances = "SPENDS"
@@ -251,4 +254,34 @@ class RecordService(
       description = repaymentRequest.description,
     )
   }
+
+
+  fun writeOffAdvance(advanceId: UUID) : AdvanceRecordResponse {
+
+    // find the advance record in the repo
+    var advance = advanceRecordRepository.getAdvanceRecordEntityById(advanceId)
+      ?: throw CustomException("Advance record not found", status = HttpStatus.NOT_FOUND)
+
+    if (advance.status != AdvanceStatus.ACTIVE) {
+      throw CustomException("Cannot write off an advance record that is not active", HttpStatus.BAD_REQUEST)
+    }
+
+    // calculate remaining amount to write off
+    val outStandingBalance = calculateAdvanceBalance(advance)
+
+    // store the amount written off - what table? yes we need a new table.
+    advanceWriteOffRepository.save(AdvanceWriteOffEntity(
+      advanceRecordId = advanceId,
+      amount = outStandingBalance,
+      createdBy = "",
+      createdAt = Instant.now()
+    ))
+
+    // update the advance record status
+    var writtenOffAdvance = advance.copy(status = AdvanceStatus.WRITTEN_OFF)
+    val updatedAdvance = advanceRecordRepository.save(writtenOffAdvance)
+
+    return AdvanceRecordResponse.fromEntity(updatedAdvance)
+  }
+
 }

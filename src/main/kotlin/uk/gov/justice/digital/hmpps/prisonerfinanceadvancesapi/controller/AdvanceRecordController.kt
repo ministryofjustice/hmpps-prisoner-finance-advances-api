@@ -18,12 +18,14 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RO
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RW
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.PagedResponse
@@ -31,6 +33,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services.RecordSe
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.utils.VALIDATION_MESSAGE_PRISON_NUMBER
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.utils.VALIDATION_REGEX_PRISON_NUMBER
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
+import java.time.Instant
 import java.util.UUID
 
 @Tag(name = "Advance Record Controller")
@@ -146,5 +149,15 @@ class AdvanceRecordController(val recordService: RecordService) {
     )
 
     return ResponseEntity.status(HttpStatus.OK).body(returnedAdvances)
+  }
+
+  @PutMapping("/advances/{advanceId}/write-off")
+  fun writeOffAdvance(
+    @PathVariable advanceId: UUID
+  ) : ResponseEntity<AdvanceRecordResponse> {
+
+    val writtenOffResponse = recordService.writeOffAdvance(advanceId = advanceId)
+
+    return ResponseEntity.status(HttpStatus.OK).body(writtenOffResponse)
   }
 }

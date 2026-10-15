@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus.NOT_FOUND
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.security.access.AccessDeniedException
+import org.springframework.web.HttpMediaTypeNotSupportedException
 import org.springframework.web.bind.MissingRequestHeaderException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -20,6 +21,17 @@ import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
 @RestControllerAdvice
 class PrisonerFinanceAdvancesApiExceptionHandler {
+
+  @ExceptionHandler(value = [HttpMediaTypeNotSupportedException::class])
+  fun handleMissingHeaderException(e: HttpMediaTypeNotSupportedException): ResponseEntity<ErrorResponse> = ResponseEntity
+    .status(BAD_REQUEST)
+    .body(
+      ErrorResponse(
+        status = BAD_REQUEST,
+        userMessage = "Incorrect or missing media type '${e.cause?.message}'",
+        developerMessage = e.message,
+      ),
+    ).also { log.info("Incorrect or missing media type '${e.cause?.message}'") }
 
   @ExceptionHandler(value = [MissingRequestHeaderException::class])
   fun handleMissingHeaderException(e: MissingRequestHeaderException): ResponseEntity<ErrorResponse> = ResponseEntity

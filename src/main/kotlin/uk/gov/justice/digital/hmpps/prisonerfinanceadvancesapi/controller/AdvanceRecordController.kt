@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RO
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RW
-import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceWriteOffRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.PagedResponse
@@ -33,7 +33,6 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services.RecordSe
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.utils.VALIDATION_MESSAGE_PRISON_NUMBER
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.utils.VALIDATION_REGEX_PRISON_NUMBER
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
-import java.time.Instant
 import java.util.UUID
 
 @Tag(name = "Advance Record Controller")
@@ -151,13 +150,48 @@ class AdvanceRecordController(val recordService: RecordService) {
     return ResponseEntity.status(HttpStatus.OK).body(returnedAdvances)
   }
 
+  @ApiResponses(
+    value = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Advance was written off",
+        content = [Content(mediaType = "application/json")],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Bad Request",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized - requires a valid OAuth2 token",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden - requires an appropriate role",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Advance ID was not found",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "Internal Server Error - An unexpected error occurred.",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+  )
+  @SecurityRequirement(name = "bearer-jwt", scopes = [ROLE_PRISONER_FINANCE__ADVANCES__RW])
+  @PreAuthorize("hasAnyAuthority('$ROLE_PRISONER_FINANCE__ADVANCES__RW')")
   @PutMapping("/advances/{advanceId}/write-off")
   fun writeOffAdvance(
-    @PathVariable advanceId: UUID
-  ) : ResponseEntity<AdvanceRecordResponse> {
-
-    val writtenOffResponse = recordService.writeOffAdvance(advanceId = advanceId)
-
+    @PathVariable advanceId: UUID,
+    @RequestBody writeOffRequest: AdvanceWriteOffRequest,
+  ): ResponseEntity<AdvanceRecordResponse> {
+    val writtenOffResponse = recordService.writeOffAdvance(advanceId = advanceId, writeOffRequest)
     return ResponseEntity.status(HttpStatus.OK).body(writtenOffResponse)
   }
 }

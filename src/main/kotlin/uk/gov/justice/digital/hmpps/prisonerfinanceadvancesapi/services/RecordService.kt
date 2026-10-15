@@ -14,6 +14,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.A
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreatePostingRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreateTransactionRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceWriteOffRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRepaymentRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
@@ -33,7 +34,7 @@ class RecordService(
   private val insertService: InsertService,
   private val generalLedgerApiClient: GeneralLedgerApiClient,
   private val accountResolver: GeneralLedgerAccountResolver,
-  private val advanceWriteOffRepository: AdvanceWriteOffRepository
+  private val advanceWriteOffRepository: AdvanceWriteOffRepository,
 ) {
   private val prisonSubAccountRefAdvances = "1502:ADV"
   private val prisonerSubAccountRefAdvances = "SPENDS"
@@ -255,9 +256,7 @@ class RecordService(
     )
   }
 
-
-  fun writeOffAdvance(advanceId: UUID) : AdvanceRecordResponse {
-
+  fun writeOffAdvance(advanceId: UUID, request: AdvanceWriteOffRequest): AdvanceRecordResponse {
     // find the advance record in the repo
     var advance = advanceRecordRepository.getAdvanceRecordEntityById(advanceId)
       ?: throw CustomException("Advance record not found", status = HttpStatus.NOT_FOUND)
@@ -270,12 +269,14 @@ class RecordService(
     val outStandingBalance = calculateAdvanceBalance(advance)
 
     // store the amount written off - what table? yes we need a new table.
-    advanceWriteOffRepository.save(AdvanceWriteOffEntity(
-      advanceRecordId = advanceId,
-      amount = outStandingBalance,
-      createdBy = "",
-      createdAt = Instant.now()
-    ))
+    advanceWriteOffRepository.save(
+      AdvanceWriteOffEntity(
+        advanceRecordId = advanceId,
+        amount = outStandingBalance,
+        createdBy = request.writtenOffBy,
+        createdAt = request.writeOffDateTime,
+      ),
+    )
 
     // update the advance record status
     var writtenOffAdvance = advance.copy(status = AdvanceStatus.WRITTEN_OFF)
@@ -283,5 +284,4 @@ class RecordService(
 
     return AdvanceRecordResponse.fromEntity(updatedAdvance)
   }
-
 }

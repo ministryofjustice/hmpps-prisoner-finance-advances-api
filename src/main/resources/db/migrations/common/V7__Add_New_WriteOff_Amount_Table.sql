@@ -10,6 +10,6 @@ CREATE TABLE advance_write_off
 
     created_by               VARCHAR(255)                NOT NULL,
 
-    CONSTRAINT pk_advance_record_payments PRIMARY KEY (id),
-    CONSTRAINT fk_advance_record_payments_advance_record FOREIGN KEY (advance_record_id) REFERENCES advance_records(id)
+    CONSTRAINT pk_advance_write_off PRIMARY KEY (id),
+    CONSTRAINT fk_advance_write_off_advance_record FOREIGN KEY (advance_record_id) REFERENCES advance_records(id)
 );

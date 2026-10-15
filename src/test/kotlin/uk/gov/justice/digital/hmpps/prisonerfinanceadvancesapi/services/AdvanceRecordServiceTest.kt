@@ -63,6 +63,56 @@ class AdvanceRecordServiceTest {
     )
   }
 
+  val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
+    amount = 11,
+    legacyTransactionId = 123,
+    createdAt = Instant.now(),
+    createdBy = "TEST",
+    description = "Test description",
+    entrySequence = 2,
+  )
+  val prisonID = "LEI"
+  val prisonNumber = "A123DX"
+  val advanceAmount = 10000L
+  val advanceId = UUID.randomUUID()
+  val idempotency = UUID.randomUUID()
+  val transactionToGl = argumentCaptor<CreateTransactionRequest>()
+  val savedPaymentEntity = argumentCaptor<AdvancePaymentEntity>()
+  val savedAdvanceEntity = argumentCaptor<AdvanceRecordEntity>()
+
+  val glTransactionId = UUID.randomUUID()
+  val prisonSubAccount = UUID.randomUUID()
+  val prisonerSubAccount = UUID.randomUUID()
+
+  lateinit var advanceRepaymentResponse: AdvanceRepaymentResponse
+
+  val advanceEntityTime = Instant.now()
+  val advanceEntity = AdvanceRecordEntity(
+    id = advanceId,
+    legacyPaymentProfileId = 123,
+    legacyInformationNumber = "12323",
+    prisonNumber = prisonNumber,
+    prisonID = prisonID,
+    amount = advanceAmount,
+    createdOn = advanceEntityTime,
+    repaymentStartDate = advanceEntityTime,
+    repaymentAmount = 11,
+    reference = "test",
+    comment = "test",
+    createdBy = "TEST",
+    status = AdvanceStatus.ACTIVE,
+    updatedAt = null,
+  )
+
+  val advancePaymentToPrisonerEntity = AdvancePaymentEntity(
+    advanceRecordId = advanceEntity.id,
+    transactionId = UUID.randomUUID(),
+    prisonerPostingType = PostingType.CR,
+    amount = advanceAmount,
+    timestamp = Instant.now(),
+    createdBy = "TEST",
+  )
+
   @Nested
   inner class CreateAdvanceRecord {
     lateinit var advanceRecordResponse: AdvanceRecordResponse
@@ -378,56 +428,6 @@ class AdvanceRecordServiceTest {
       }
     }
   }
-
-  val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
-    amount = 11,
-    legacyTransactionId = 123,
-    createdAt = Instant.now(),
-    createdBy = "TEST",
-    description = "Test description",
-    entrySequence = 2,
-  )
-  val prisonID = "LEI"
-  val prisonNumber = "A123DX"
-  val advanceAmount = 10000L
-  val advanceId = UUID.randomUUID()
-  val idempotency = UUID.randomUUID()
-  val transactionToGl = argumentCaptor<CreateTransactionRequest>()
-  val savedPaymentEntity = argumentCaptor<AdvancePaymentEntity>()
-  val savedAdvanceEntity = argumentCaptor<AdvanceRecordEntity>()
-
-  val glTransactionId = UUID.randomUUID()
-  val prisonSubAccount = UUID.randomUUID()
-  val prisonerSubAccount = UUID.randomUUID()
-
-  lateinit var advanceRepaymentResponse: AdvanceRepaymentResponse
-
-  val advanceEntityTime = Instant.now()
-  val advanceEntity = AdvanceRecordEntity(
-    id = advanceId,
-    legacyPaymentProfileId = 123,
-    legacyInformationNumber = "12323",
-    prisonNumber = prisonNumber,
-    prisonID = prisonID,
-    amount = advanceAmount,
-    createdOn = advanceEntityTime,
-    repaymentStartDate = advanceEntityTime,
-    repaymentAmount = 11,
-    reference = "test",
-    comment = "test",
-    createdBy = "TEST",
-    status = AdvanceStatus.ACTIVE,
-    updatedAt = null,
-  )
-
-  val advancePaymentToPrisonerEntity = AdvancePaymentEntity(
-    advanceRecordId = advanceEntity.id,
-    transactionId = UUID.randomUUID(),
-    prisonerPostingType = PostingType.CR,
-    amount = advanceAmount,
-    timestamp = Instant.now(),
-    createdBy = "TEST",
-  )
 
   @Nested
   inner class RepayAdvance {
@@ -888,6 +888,31 @@ class AdvanceRecordServiceTest {
       val accountBalance = advanceRecordService.calculateAdvanceBalance(advanceEntity)
 
       assertThat(accountBalance).isEqualTo(0)
+    }
+  }
+
+  @Nested
+  inner class getAdvanceBalance {
+
+
+    @Test
+    fun `Should throw 404 exception when advance entity does not exist`() {
+      val error = assertThrows<CustomException>{
+        advanceRecordService.getAdvanceBalance(UUID.randomUUID())
+      }
+
+      assertThat(error.status).isEqualTo(HttpStatus.NOT_FOUND)
+    }
+
+    @Test
+    fun `Should return the advance balance and calculate remaining repayments`() {
+
+      whenever(
+        advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(advanceEntity)
+
+      advanceRecordService.getAdvanceBalance(advanceEntity.id)
+      assertThat(error.status).isEqualTo(HttpStatus.NOT_FOUND)
     }
   }
 }

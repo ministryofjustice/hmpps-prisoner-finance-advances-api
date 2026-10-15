@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RO
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RW
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.PagedResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services.RecordService
@@ -146,5 +147,17 @@ class AdvanceRecordController(val recordService: RecordService) {
     )
 
     return ResponseEntity.status(HttpStatus.OK).body(returnedAdvances)
+  }
+
+
+  @SecurityRequirement(name = "bearer-jwt", scopes = [ROLE_PRISONER_FINANCE__ADVANCES__RW, ROLE_PRISONER_FINANCE__ADVANCES__RO])
+  @PreAuthorize("hasAnyAuthority('$ROLE_PRISONER_FINANCE__ADVANCES__RW', '$ROLE_PRISONER_FINANCE__ADVANCES__RO')")
+  @GetMapping("/advances/{advanceId}")
+  fun getAdvanceBalance(
+    @PathVariable advanceId: UUID,
+  ): ResponseEntity<AdvanceBalanceResponse> {
+    val advanceBalance = recordService.getAdvanceBalance(advanceId)
+
+    return ResponseEntity.status(HttpStatus.OK).body(advanceBalance)
   }
 }

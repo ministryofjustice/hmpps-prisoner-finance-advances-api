@@ -15,6 +15,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalled
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreateTransactionRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRepaymentRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRepaymentResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.PagedResponse
@@ -185,6 +186,29 @@ class RecordService(
     // TODO: this might need a refactor for when migrated advances that don't have payments will get added - PFI 1659
     return advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advance.id)
       .fold(0L) { s, it -> s + applyPostingType(it.prisonerPostingType, it.amount) }
+  }
+
+  fun getAdvanceBalance(advanceId: UUID): AdvanceBalanceResponse {
+    val advance = advanceRecordRepository.getAdvanceRecordEntityById(advanceId)
+      ?: throw CustomException("Advance record not found", HttpStatus.NOT_FOUND)
+
+    if (advance.status != AdvanceStatus.ACTIVE) {
+      return AdvanceBalanceResponse(
+        advanceAmount = advance.amount,
+        balanceOutstanding = 0,
+        weeklyPaymentAmount = advance.repaymentAmount,
+        remainingPayments = 0,
+      )
+    }
+
+    val outstandingBalance = calculateAdvanceBalance(advance)
+
+    return AdvanceBalanceResponse(
+      advanceAmount = advance.amount,
+      balanceOutstanding = outstandingBalance,
+      weeklyPaymentAmount = advance.repaymentAmount,
+      remainingPayments = Math.ceilDiv(outstandingBalance, advance.repaymentAmount),
+    )
   }
 
   private fun updateAdvanceStatusForRepayment(

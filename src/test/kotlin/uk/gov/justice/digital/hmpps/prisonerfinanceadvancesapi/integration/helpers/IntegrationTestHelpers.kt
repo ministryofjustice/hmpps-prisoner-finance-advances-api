@@ -15,12 +15,15 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wirem
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRepaymentRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRepaymentResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvancePaymentRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 import java.time.Instant
 import java.util.UUID
+import kotlin.random.Random
 
 @ExtendWith(GeneralLedgerApiExtension::class, HmppsAuthApiExtension::class)
 @TestConfiguration
@@ -126,6 +129,36 @@ class IntegrationTestHelpers(
       .responseBody!!
 
     return responseBody
+  }
+
+  fun repayAdvance(advanceId: UUID, repaymentAmount: Long, prisonSubAccountId: UUID, prisonerSubAccountId: UUID) {
+    val request = CreateAdvanceRepaymentRequest(
+      amount = repaymentAmount,
+      legacyTransactionId = Random.nextLong(),
+      createdAt = Instant.now(),
+      createdBy = "TEST",
+      description = "Test description",
+      entrySequence = 2,
+    )
+
+    generalLedgerApi.stubPostTransaction(
+      creditorSubAccountUuid = prisonSubAccountId.toString(),
+      debtorSubAccountUuid = prisonerSubAccountId.toString(),
+      returnUUID = UUID.randomUUID(),
+      amount = request.amount,
+      legacyTransactionId = request.legacyTransactionId.toString(),
+    )
+
+    webTestClient.post().uri("/advances/$advanceId/repay")
+      .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+      .headers(setIdempotencyKey(UUID.randomUUID()))
+      .bodyValue(request)
+      .exchange()
+      .expectStatus()
+      .isCreated
+      .expectBody<AdvanceRepaymentResponse>()
+      .returnResult()
+      .responseBody!!
   }
 
   @Transactional

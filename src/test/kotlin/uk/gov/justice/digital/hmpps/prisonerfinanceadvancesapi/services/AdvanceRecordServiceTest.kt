@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.mockito.Mock
 import org.mockito.Mockito.verify
 import org.mockito.junit.jupiter.MockitoExtension
@@ -62,6 +64,56 @@ class AdvanceRecordServiceTest {
       accountResolver = accountResolver,
     )
   }
+
+  val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
+    amount = 11,
+    legacyTransactionId = 123,
+    createdAt = Instant.now(),
+    createdBy = "TEST",
+    description = "Test description",
+    entrySequence = 2,
+  )
+  val prisonID = "LEI"
+  val prisonNumber = "A123DX"
+  val advanceAmount = 10000L
+  val advanceId = UUID.randomUUID()
+  val idempotency = UUID.randomUUID()
+  val transactionToGl = argumentCaptor<CreateTransactionRequest>()
+  val savedPaymentEntity = argumentCaptor<AdvancePaymentEntity>()
+  val savedAdvanceEntity = argumentCaptor<AdvanceRecordEntity>()
+
+  val glTransactionId = UUID.randomUUID()
+  val prisonSubAccount = UUID.randomUUID()
+  val prisonerSubAccount = UUID.randomUUID()
+
+  lateinit var advanceRepaymentResponse: AdvanceRepaymentResponse
+
+  val advanceEntityTime = Instant.now()
+  val advanceEntity = AdvanceRecordEntity(
+    id = advanceId,
+    legacyPaymentProfileId = 123,
+    legacyInformationNumber = "12323",
+    prisonNumber = prisonNumber,
+    prisonID = prisonID,
+    amount = advanceAmount,
+    createdOn = advanceEntityTime,
+    repaymentStartDate = advanceEntityTime,
+    repaymentAmount = 11,
+    reference = "test",
+    comment = "test",
+    createdBy = "TEST",
+    status = AdvanceStatus.ACTIVE,
+    updatedAt = null,
+  )
+
+  val advancePaymentToPrisonerEntity = AdvancePaymentEntity(
+    advanceRecordId = advanceEntity.id,
+    transactionId = UUID.randomUUID(),
+    prisonerPostingType = PostingType.CR,
+    amount = advanceAmount,
+    timestamp = Instant.now(),
+    createdBy = "TEST",
+  )
 
   @Nested
   inner class CreateAdvanceRecord {
@@ -892,6 +944,183 @@ class AdvanceRecordServiceTest {
       val accountBalance = advanceRecordService.calculateAdvanceBalance(advanceEntity)
 
       assertThat(accountBalance).isEqualTo(0)
+    }
+  }
+
+  @Nested
+  inner class GetAdvanceBalance {
+
+    val advanceEntity = AdvanceRecordEntity(
+      legacyPaymentProfileId = 123,
+      legacyInformationNumber = "123312",
+      prisonNumber = "A123XS",
+      prisonID = "LEI",
+      amount = 100,
+      createdOn = Instant.now(),
+      repaymentStartDate = Instant.now(),
+      repaymentAmount = 10,
+      reference = "",
+      comment = "",
+      createdBy = "TEST",
+      status = AdvanceStatus.ACTIVE,
+      updatedAt = null,
+    )
+
+    val advancePaymentCreditToPrisoner = AdvancePaymentEntity(
+      advanceRecordId = advanceEntity.id,
+      transactionId = UUID.randomUUID(),
+      prisonerPostingType = PostingType.CR,
+      amount = advanceEntity.amount,
+      timestamp = Instant.now(),
+      createdBy = "TEST",
+    )
+
+    @Test
+    fun `Should throw 404 exception when advance entity does not exist`() {
+      val error = assertThrows<CustomException> {
+        advanceRecordService.getAdvanceBalance(UUID.randomUUID())
+      }
+
+      assertThat(error.status).isEqualTo(HttpStatus.NOT_FOUND)
+    }
+
+    @Test
+    fun `Should calculate the balance when an advance is fully repaid`() {
+      val advancePaymentDebitToPrisonerOne = AdvancePaymentEntity(
+        advanceRecordId = advanceEntity.id,
+        transactionId = UUID.randomUUID(),
+        prisonerPostingType = PostingType.DR,
+        amount = 50,
+        timestamp = Instant.now(),
+        createdBy = "TEST",
+      )
+
+      val advancePaymentDebitToPrisonerTwo = AdvancePaymentEntity(
+        advanceRecordId = advanceEntity.id,
+        transactionId = UUID.randomUUID(),
+        prisonerPostingType = PostingType.DR,
+        amount = 50,
+        timestamp = Instant.now(),
+        createdBy = "TEST",
+      )
+
+      whenever(
+        advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(listOf(advancePaymentCreditToPrisoner, advancePaymentDebitToPrisonerOne, advancePaymentDebitToPrisonerTwo))
+
+      whenever(
+        advanceRecordRepository.getAdvanceRecordEntityById(advanceEntity.id),
+      ).thenReturn(advanceEntity)
+
+      val balance = advanceRecordService.getAdvanceBalance(advanceEntity.id)
+
+      assertThat(balance.balanceOutstanding).isEqualTo(0)
+      assertThat(balance.advanceAmount).isEqualTo(advanceEntity.amount)
+      assertThat(balance.weeklyPaymentAmount).isEqualTo(advanceEntity.repaymentAmount)
+      assertThat(balance.remainingPayments).isEqualTo(0)
+    }
+
+    @Test
+    fun `Should calculate the balance correctly when there is a balance outstanding`() {
+      val advancePaymentDebitToPrisonerOne = AdvancePaymentEntity(
+        advanceRecordId = advanceEntity.id,
+        transactionId = UUID.randomUUID(),
+        prisonerPostingType = PostingType.DR,
+        amount = 50,
+        timestamp = Instant.now(),
+        createdBy = "TEST",
+      )
+
+      val advancePaymentDebitToPrisonerTwo = AdvancePaymentEntity(
+        advanceRecordId = advanceEntity.id,
+        transactionId = UUID.randomUUID(),
+        prisonerPostingType = PostingType.DR,
+        amount = 10,
+        timestamp = Instant.now(),
+        createdBy = "TEST",
+      )
+
+      whenever(
+        advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(listOf(advancePaymentCreditToPrisoner, advancePaymentDebitToPrisonerOne, advancePaymentDebitToPrisonerTwo))
+
+      whenever(
+        advanceRecordRepository.getAdvanceRecordEntityById(advanceEntity.id),
+      ).thenReturn(advanceEntity)
+
+      val balance = advanceRecordService.getAdvanceBalance(advanceEntity.id)
+
+      assertThat(balance.balanceOutstanding).isEqualTo(40)
+      assertThat(balance.advanceAmount).isEqualTo(advanceEntity.amount)
+      assertThat(balance.weeklyPaymentAmount).isEqualTo(advanceEntity.repaymentAmount)
+      assertThat(balance.remainingPayments).isEqualTo(4)
+    }
+
+    @Test
+    fun `Should roundup remaining payments if one is below the weekly repayment amount`() {
+      val advancePaymentDebitToPrisonerOne = AdvancePaymentEntity(
+        advanceRecordId = advanceEntity.id,
+        transactionId = UUID.randomUUID(),
+        prisonerPostingType = PostingType.DR,
+        amount = 50,
+        timestamp = Instant.now(),
+        createdBy = "TEST",
+      )
+
+      val advancePaymentDebitToPrisonerTwo = AdvancePaymentEntity(
+        advanceRecordId = advanceEntity.id,
+        transactionId = UUID.randomUUID(),
+        prisonerPostingType = PostingType.DR,
+        amount = 31,
+        timestamp = Instant.now(),
+        createdBy = "TEST",
+      )
+
+      whenever(
+        advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(listOf(advancePaymentCreditToPrisoner, advancePaymentDebitToPrisonerOne, advancePaymentDebitToPrisonerTwo))
+
+      whenever(
+        advanceRecordRepository.getAdvanceRecordEntityById(advanceEntity.id),
+      ).thenReturn(advanceEntity)
+
+      val balance = advanceRecordService.getAdvanceBalance(advanceEntity.id)
+
+      assertThat(balance.balanceOutstanding).isEqualTo(19)
+      assertThat(balance.advanceAmount).isEqualTo(advanceEntity.amount)
+      assertThat(balance.weeklyPaymentAmount).isEqualTo(advanceEntity.repaymentAmount)
+      assertThat(balance.remainingPayments).isEqualTo(2)
+    }
+
+    @ParameterizedTest
+    @CsvSource("REPAID", "WRITTEN_OFF")
+    fun `should return a zero balance if advance is not active`(status: AdvanceStatus) {
+      val inactiveAdvance = AdvanceRecordEntity(
+        legacyPaymentProfileId = 123,
+        legacyInformationNumber = "123",
+        prisonNumber = "A123BX",
+        prisonID = "LEI",
+        amount = 10,
+        createdOn = Instant.now(),
+        repaymentStartDate = Instant.now(),
+        repaymentAmount = 1,
+        reference = "",
+        comment = "",
+        createdBy = "TEST",
+        updatedAt = Instant.now(),
+        status = status,
+      )
+
+      whenever(
+        advanceRecordRepository.getAdvanceRecordEntityById(advanceEntity.id),
+      ).thenReturn(inactiveAdvance)
+
+      val balance = advanceRecordService.getAdvanceBalance(advanceEntity.id)
+
+      assertThat(balance.balanceOutstanding).isEqualTo(0)
+      assertThat(balance.advanceAmount).isEqualTo(inactiveAdvance.amount)
+      assertThat(balance.weeklyPaymentAmount).isEqualTo(inactiveAdvance.repaymentAmount)
+      assertThat(balance.remainingPayments).isEqualTo(0)
     }
   }
 }

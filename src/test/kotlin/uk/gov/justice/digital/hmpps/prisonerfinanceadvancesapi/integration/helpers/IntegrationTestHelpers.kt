@@ -131,7 +131,7 @@ class IntegrationTestHelpers(
     return responseBody
   }
 
-  fun repayAdvance(advanceId: UUID, repaymentAmount: Long, prisonSubAccountId: UUID, prisonerSubAccountId: UUID) {
+  fun repayAdvance(advanceId: UUID, repaymentAmount: Long, prisonSubAccountId: UUID, prisonerSubAccountId: UUID): AdvanceRepaymentResponse {
     val request = CreateAdvanceRepaymentRequest(
       amount = repaymentAmount,
       legacyTransactionId = Random.nextLong(),
@@ -149,7 +149,7 @@ class IntegrationTestHelpers(
       legacyTransactionId = request.legacyTransactionId.toString(),
     )
 
-    webTestClient.post().uri("/advances/$advanceId/repay")
+    val response = webTestClient.post().uri("/advances/$advanceId/repay")
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
       .headers(setIdempotencyKey(UUID.randomUUID()))
       .bodyValue(request)
@@ -159,6 +159,8 @@ class IntegrationTestHelpers(
       .expectBody<AdvanceRepaymentResponse>()
       .returnResult()
       .responseBody!!
+
+    return response
   }
 
   @Transactional

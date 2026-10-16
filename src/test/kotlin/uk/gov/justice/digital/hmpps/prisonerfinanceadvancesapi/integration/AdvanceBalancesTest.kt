@@ -6,11 +6,13 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.test.web.reactive.server.expectBody
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RO
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RW
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.GeneralLedgerApiExtension.Companion.generalLedgerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceRecordEntity
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AccountAdvanceBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
@@ -229,6 +231,113 @@ class AdvanceBalancesTest : IntegrationTestBase() {
 
       assertThat(error.status).isEqualTo(404)
       assertThat(error.userMessage).isEqualTo("Advance record not found")
+    }
+  }
+
+  @Nested
+  inner class AccountBalance {
+
+    @BeforeEach
+    fun clearDB() {
+      integrationTestHelpers.clearDB()
+      hmppsAuth.stubGrantToken()
+      generalLedgerApi.resetAll()
+    }
+
+    val prisonNumber = "A1234BC"
+    val prisonId = "LEI"
+    val prisonerSubAccountId = UUID.randomUUID()
+    val prisonSubAccountId = UUID.randomUUID()
+    val prisonParentAccountId = UUID.randomUUID()
+    val prisonerParentAccountId = UUID.randomUUID()
+
+    @Test
+    fun `should return 200 and aggregated view of all the advances`() {
+      val advanceOne = integrationTestHelpers.createAdvance(
+        prisonNumber = prisonNumber,
+        legacyPaymentProfileId = 12345L,
+        legacyInformationNumber = "6789",
+        amount = 500,
+        prisonId = prisonId,
+        repaymentAmount = 50,
+        status = AdvanceStatus.ACTIVE,
+        prisonerSubAccountId = prisonerSubAccountId,
+        prisonSubAccountId = prisonSubAccountId,
+        prisonParentAccountId = prisonParentAccountId,
+        prisonerParentAccountId = prisonerParentAccountId,
+      )
+
+      val advanceTwo = integrationTestHelpers.createAdvance(
+        prisonNumber = prisonNumber,
+        legacyPaymentProfileId = 6789L,
+        legacyInformationNumber = "6789-1",
+        amount = 1000,
+        prisonId = prisonId,
+        repaymentAmount = 100,
+        status = AdvanceStatus.ACTIVE,
+        prisonerSubAccountId = prisonerSubAccountId,
+        prisonSubAccountId = prisonSubAccountId,
+        prisonParentAccountId = prisonParentAccountId,
+        prisonerParentAccountId = prisonerParentAccountId,
+      )
+
+      val advanceRepaymentResponse = integrationTestHelpers.repayAdvance(
+        advanceOne.id,
+        repaymentAmount = 50,
+        prisonSubAccountId = prisonSubAccountId,
+        prisonerSubAccountId = prisonerSubAccountId,
+      )
+
+      val response = webTestClient.get().uri("/advances/account/$prisonNumber/balance", prisonNumber)
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RO)))
+        .exchange()
+        .expectStatus()
+        .isOk
+        .expectBody<AccountAdvanceBalanceResponse>()
+        .returnResult()
+        .responseBody!!
+
+      assertThat(response.weeklyPaymentAmount).isEqualTo(advanceOne.repaymentAmount + advanceTwo.repaymentAmount)
+      assertThat(response.advancesAmount).isEqualTo(advanceOne.amount + advanceTwo.amount)
+      assertThat(response.balancesOutstanding).isEqualTo(advanceOne.amount + advanceTwo.amount - advanceRepaymentResponse.amount)
+    }
+
+    @Test
+    fun `should return 200 and zeros when no active advances exist`() {
+      val response = webTestClient.get().uri("/advances/account/$prisonNumber/balance", prisonNumber)
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RO)))
+        .exchange()
+        .expectStatus()
+        .isOk
+        .expectBody<AccountAdvanceBalanceResponse>()
+        .returnResult()
+        .responseBody!!
+
+      assertThat(response.weeklyPaymentAmount).isEqualTo(0)
+      assertThat(response.advancesAmount).isEqualTo(0)
+      assertThat(response.balancesOutstanding).isEqualTo(0)
+    }
+
+    @Test
+    fun `should return 400 if the prisonNumber is not valid`() {
+      webTestClient.get().uri("/advances/account/INVALID/balance", "INVALID")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RO)))
+        .exchange()
+        .expectStatus()
+        .isBadRequest
+        .expectBody<ErrorResponse>()
+        .returnResult()
+        .responseBody!!
+    }
+
+    @Test
+    fun `should return 403 an invalid role is passed`() {
+      webTestClient.get().uri("/advances/account/$prisonNumber/balance", prisonNumber)
+        .headers(setAuthorisation(roles = listOf("ROLE__INVALID")))
+        .exchange()
+        .expectStatus()
+        .isForbidden
+        .expectBody<ErrorResponse>()
     }
   }
 }

@@ -257,18 +257,15 @@ class RecordService(
   }
 
   fun writeOffAdvance(advanceId: UUID, request: AdvanceWriteOffRequest): AdvanceRecordResponse {
-    // find the advance record in the repo
-    var advance = advanceRecordRepository.getAdvanceRecordEntityById(advanceId)
+    val advance = advanceRecordRepository.getAdvanceRecordEntityById(advanceId)
       ?: throw CustomException("Advance record not found", status = HttpStatus.NOT_FOUND)
 
     if (advance.status != AdvanceStatus.ACTIVE) {
       throw CustomException("Cannot write off an advance record that is not active", HttpStatus.BAD_REQUEST)
     }
 
-    // calculate remaining amount to write off
     val outStandingBalance = calculateAdvanceBalance(advance)
 
-    // store the amount written off - what table? yes we need a new table.
     advanceWriteOffRepository.save(
       AdvanceWriteOffEntity(
         advanceRecordId = advanceId,
@@ -278,8 +275,7 @@ class RecordService(
       ),
     )
 
-    // update the advance record status
-    var writtenOffAdvance = advance.copy(status = AdvanceStatus.WRITTEN_OFF)
+    val writtenOffAdvance = advance.copy(status = AdvanceStatus.WRITTEN_OFF)
     val updatedAdvance = advanceRecordRepository.save(writtenOffAdvance)
 
     return AdvanceRecordResponse.fromEntity(updatedAdvance)

@@ -151,7 +151,7 @@ class PrisonerFinanceAdvancesApiExceptionHandler {
         userMessage = "HTTP method ${e.method} is not supported for this endpoint.",
         developerMessage = e.message,
       ),
-    ).also { uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.PrisonerFinanceAdvancesApiExceptionHandler.Companion.log.error("Endpoint called with the wrong method exception", e) }
+    ).also { log.error("Endpoint called with the wrong method exception", e) }
 
   private companion object {
     private val log = LoggerFactory.getLogger(this::class.java)

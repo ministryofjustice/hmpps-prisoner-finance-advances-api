@@ -158,7 +158,6 @@ class AdvanceBalancesTest : IntegrationTestBase() {
 
     @Test
     fun `Should return the balance of an advance that is written-off`() {
-      // TODO, change this setup once we have a write-off endpoint
       val advanceRecordEntity = AdvanceRecordEntity(
         legacyPaymentProfileId = 234,
         legacyInformationNumber = "123",

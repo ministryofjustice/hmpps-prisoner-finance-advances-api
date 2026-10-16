@@ -155,7 +155,7 @@ class AdvanceRecordController(val recordService: RecordService) {
       ApiResponse(
         responseCode = "201",
         description = "Advance was written off",
-        content = [Content(mediaType = "application/json")],
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = AdvanceRecordResponse::class))],
       ),
       ApiResponse(
         responseCode = "400",

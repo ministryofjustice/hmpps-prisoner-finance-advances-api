@@ -77,7 +77,7 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(advanceBalanceResponse.balanceOutstanding).isEqualTo(650)
       assertThat(advanceBalanceResponse.advanceAmount).isEqualTo(advanceAmount)
       assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(13)
-      assertThat(advanceBalanceResponse.weeklyPayments).isEqualTo(repaymentAmount)
+      assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(repaymentAmount)
     }
 
     @Test
@@ -110,7 +110,7 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(advanceBalanceResponse.balanceOutstanding).isEqualTo(advanceAmount)
       assertThat(advanceBalanceResponse.advanceAmount).isEqualTo(advanceAmount)
       assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(20)
-      assertThat(advanceBalanceResponse.weeklyPayments).isEqualTo(repaymentAmount)
+      assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(repaymentAmount)
     }
 
     @Test
@@ -153,7 +153,7 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(advanceBalanceResponse.balanceOutstanding).isEqualTo(0)
       assertThat(advanceBalanceResponse.advanceAmount).isEqualTo(advanceAmount)
       assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(0)
-      assertThat(advanceBalanceResponse.weeklyPayments).isEqualTo(repaymentAmount)
+      assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(repaymentAmount)
     }
 
     @Test
@@ -188,7 +188,7 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(advanceBalanceResponse.balanceOutstanding).isEqualTo(0)
       assertThat(advanceBalanceResponse.advanceAmount).isEqualTo(advanceRecordEntity.amount)
       assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(0)
-      assertThat(advanceBalanceResponse.weeklyPayments).isEqualTo(advanceRecordEntity.repaymentAmount)
+      assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(advanceRecordEntity.repaymentAmount)
     }
 
     @Test

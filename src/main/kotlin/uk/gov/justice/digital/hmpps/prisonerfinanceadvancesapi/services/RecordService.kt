@@ -196,7 +196,7 @@ class RecordService(
       return AdvanceBalanceResponse(
         advanceAmount = advance.amount,
         balanceOutstanding = 0,
-        weeklyPayments = advance.repaymentAmount,
+        weeklyPaymentAmount = advance.repaymentAmount,
         remainingPayments = 0,
       )
     }
@@ -206,7 +206,7 @@ class RecordService(
     return AdvanceBalanceResponse(
       advanceAmount = advance.amount,
       balanceOutstanding = outstandingBalance,
-      weeklyPayments = advance.repaymentAmount,
+      weeklyPaymentAmount = advance.repaymentAmount,
       remainingPayments = Math.ceilDiv(outstandingBalance, advance.repaymentAmount),
     )
   }

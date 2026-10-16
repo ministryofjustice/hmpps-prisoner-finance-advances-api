@@ -931,7 +931,7 @@ class AdvanceRecordServiceTest {
     }
 
     @Test
-    fun `Should return the advance balance and when advance is paid off`() {
+    fun `Should calculate the balance when an advance is fully repaid`() {
       val advancePaymentDebitToPrisonerOne = AdvancePaymentEntity(
         advanceRecordId = advanceEntity.id,
         transactionId = UUID.randomUUID(),
@@ -962,12 +962,12 @@ class AdvanceRecordServiceTest {
 
       assertThat(balance.balanceOutstanding).isEqualTo(0)
       assertThat(balance.advanceAmount).isEqualTo(advanceEntity.amount)
-      assertThat(balance.weeklyPayments).isEqualTo(advanceEntity.repaymentAmount)
+      assertThat(balance.weeklyPaymentAmount).isEqualTo(advanceEntity.repaymentAmount)
       assertThat(balance.remainingPayments).isEqualTo(0)
     }
 
     @Test
-    fun `Should return the advance balance and the balance is outstanding`() {
+    fun `Should calculate the balance correctly when there is a balance outstanding`() {
       val advancePaymentDebitToPrisonerOne = AdvancePaymentEntity(
         advanceRecordId = advanceEntity.id,
         transactionId = UUID.randomUUID(),
@@ -998,7 +998,7 @@ class AdvanceRecordServiceTest {
 
       assertThat(balance.balanceOutstanding).isEqualTo(40)
       assertThat(balance.advanceAmount).isEqualTo(advanceEntity.amount)
-      assertThat(balance.weeklyPayments).isEqualTo(advanceEntity.repaymentAmount)
+      assertThat(balance.weeklyPaymentAmount).isEqualTo(advanceEntity.repaymentAmount)
       assertThat(balance.remainingPayments).isEqualTo(4)
     }
 
@@ -1034,13 +1034,13 @@ class AdvanceRecordServiceTest {
 
       assertThat(balance.balanceOutstanding).isEqualTo(19)
       assertThat(balance.advanceAmount).isEqualTo(advanceEntity.amount)
-      assertThat(balance.weeklyPayments).isEqualTo(advanceEntity.repaymentAmount)
+      assertThat(balance.weeklyPaymentAmount).isEqualTo(advanceEntity.repaymentAmount)
       assertThat(balance.remainingPayments).isEqualTo(2)
     }
 
     @ParameterizedTest
     @CsvSource("REPAID", "WRITTEN_OFF")
-    fun `should return a zero balance is advance is not active`(status: AdvanceStatus) {
+    fun `should return a zero balance if advance is not active`(status: AdvanceStatus) {
       val inactiveAdvance = AdvanceRecordEntity(
         legacyPaymentProfileId = 123,
         legacyInformationNumber = "123",
@@ -1065,7 +1065,7 @@ class AdvanceRecordServiceTest {
 
       assertThat(balance.balanceOutstanding).isEqualTo(0)
       assertThat(balance.advanceAmount).isEqualTo(inactiveAdvance.amount)
-      assertThat(balance.weeklyPayments).isEqualTo(inactiveAdvance.repaymentAmount)
+      assertThat(balance.weeklyPaymentAmount).isEqualTo(inactiveAdvance.repaymentAmount)
       assertThat(balance.remainingPayments).isEqualTo(0)
     }
   }

@@ -6,11 +6,11 @@ class AdvanceBalanceResponse(
   @field:Schema(description = "Initial amount of the advance")
   val advanceAmount: Long,
 
-  @field:Schema(description = "remaining balance to pay")
+  @field:Schema(description = "Remaining balance to pay")
   val balanceOutstanding: Long,
 
   @field:Schema(description = "Amount paid each week")
-  val weeklyPayments: Long,
+  val weeklyPaymentAmount: Long,
 
   @field:Schema(description = "remaining payments (balanceOutstanding / weeklyPayments) rounded up")
   val remainingPayments: Long,

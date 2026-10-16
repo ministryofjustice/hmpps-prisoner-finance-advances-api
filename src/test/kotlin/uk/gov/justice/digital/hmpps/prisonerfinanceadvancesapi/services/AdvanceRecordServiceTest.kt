@@ -379,418 +379,422 @@ class AdvanceRecordServiceTest {
     }
   }
 
-  val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
-    amount = 11,
-    legacyTransactionId = 123,
-    createdAt = Instant.now(),
-    createdBy = "TEST",
-    description = "Test description",
-    entrySequence = 2,
-  )
-  val prisonID = "LEI"
-  val prisonNumber = "A123DX"
-  val advanceAmount = 10000L
-  val advanceId = UUID.randomUUID()
-  val idempotency = UUID.randomUUID()
-  val transactionToGl = argumentCaptor<CreateTransactionRequest>()
-  val savedPaymentEntity = argumentCaptor<AdvancePaymentEntity>()
-  val savedAdvanceEntity = argumentCaptor<AdvanceRecordEntity>()
-
-  val glTransactionId = UUID.randomUUID()
-  val prisonSubAccount = UUID.randomUUID()
-  val prisonerSubAccount = UUID.randomUUID()
-
-  lateinit var advanceRepaymentResponse: AdvanceRepaymentResponse
-
-  val advanceEntityTime = Instant.now()
-  val advanceEntity = AdvanceRecordEntity(
-    id = advanceId,
-    legacyPaymentProfileId = 123,
-    legacyInformationNumber = "12323",
-    prisonNumber = prisonNumber,
-    prisonID = prisonID,
-    amount = advanceAmount,
-    createdOn = advanceEntityTime,
-    repaymentStartDate = advanceEntityTime,
-    repaymentAmount = 11,
-    reference = "test",
-    comment = "test",
-    createdBy = "TEST",
-    status = AdvanceStatus.ACTIVE,
-    updatedAt = null,
-  )
-
-  val advancePaymentToPrisonerEntity = AdvancePaymentEntity(
-    advanceRecordId = advanceEntity.id,
-    transactionId = UUID.randomUUID(),
-    prisonerPostingType = PostingType.CR,
-    amount = advanceAmount,
-    timestamp = Instant.now(),
-    createdBy = "TEST",
-  )
-
   @Nested
   inner class RepayAdvance {
 
-    @BeforeEach
-    fun setup() {
-      whenever { advanceRecordRepository.getAdvanceRecordEntityById(advanceId) }.thenReturn(
-        advanceEntity,
-      )
+    val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
+      amount = 11,
+      legacyTransactionId = 123,
+      createdAt = Instant.now(),
+      createdBy = "TEST",
+      description = "Test description",
+      entrySequence = 2,
+    )
+    val prisonID = "LEI"
+    val prisonNumber = "A123DX"
+    val advanceAmount = 10000L
+    val advanceId = UUID.randomUUID()
+    val idempotency = UUID.randomUUID()
+    val transactionToGl = argumentCaptor<CreateTransactionRequest>()
+    val savedPaymentEntity = argumentCaptor<AdvancePaymentEntity>()
+    val savedAdvanceEntity = argumentCaptor<AdvanceRecordEntity>()
 
-      whenever {
-        accountResolver.resolveSubAccount(
-          parentRef = eq(prisonID),
-          subRef = eq("1502:ADV"),
+    val glTransactionId = UUID.randomUUID()
+    val prisonSubAccount = UUID.randomUUID()
+    val prisonerSubAccount = UUID.randomUUID()
+
+    lateinit var advanceRepaymentResponse: AdvanceRepaymentResponse
+
+    val advanceEntityTime = Instant.now()
+    val advanceEntity = AdvanceRecordEntity(
+      id = advanceId,
+      legacyPaymentProfileId = 123,
+      legacyInformationNumber = "12323",
+      prisonNumber = prisonNumber,
+      prisonID = prisonID,
+      amount = advanceAmount,
+      createdOn = advanceEntityTime,
+      repaymentStartDate = advanceEntityTime,
+      repaymentAmount = 11,
+      reference = "test",
+      comment = "test",
+      createdBy = "TEST",
+      status = AdvanceStatus.ACTIVE,
+      updatedAt = null,
+    )
+
+    val advancePaymentToPrisonerEntity = AdvancePaymentEntity(
+      advanceRecordId = advanceEntity.id,
+      transactionId = UUID.randomUUID(),
+      prisonerPostingType = PostingType.CR,
+      amount = advanceAmount,
+      timestamp = Instant.now(),
+      createdBy = "TEST",
+    )
+
+    @Nested
+    inner class SuccessfulCases {
+
+      @BeforeEach
+      fun setup() {
+        whenever { advanceRecordRepository.getAdvanceRecordEntityById(advanceId) }.thenReturn(
+          advanceEntity,
         )
-      }.thenReturn(prisonSubAccount)
 
-      whenever {
-        accountResolver.resolveSubAccount(
-          parentRef = eq(prisonNumber),
-          subRef = eq("SPENDS"),
-        )
-      }.thenReturn(prisonerSubAccount)
+        whenever {
+          accountResolver.resolveSubAccount(
+            parentRef = eq(prisonID),
+            subRef = eq("1502:ADV"),
+          )
+        }.thenReturn(prisonSubAccount)
 
-      whenever {
-        generalLedgerApiClient.postTransaction(
-          request = transactionToGl.capture(),
-          idempotencyKey = eq(idempotency),
-        )
-      }.thenReturn(glTransactionId)
+        whenever {
+          accountResolver.resolveSubAccount(
+            parentRef = eq(prisonNumber),
+            subRef = eq("SPENDS"),
+          )
+        }.thenReturn(prisonerSubAccount)
 
-      whenever(
-        advancePaymentRepository.saveAndFlush(savedPaymentEntity.capture()),
-      ).thenAnswer { it.arguments[0] }
+        whenever {
+          generalLedgerApiClient.postTransaction(
+            request = transactionToGl.capture(),
+            idempotencyKey = eq(idempotency),
+          )
+        }.thenReturn(glTransactionId)
 
-      whenever(
-        advanceRecordRepository.saveAndFlush(savedAdvanceEntity.capture()),
-      ).thenAnswer { it.arguments[0] }
-    }
+        whenever(
+          advancePaymentRepository.saveAndFlush(savedPaymentEntity.capture()),
+        ).thenAnswer { it.arguments[0] }
 
-    @Test
-    fun `should create a transaction in GL for the advance repayment`() {
-      whenever(
-        advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
-      ).thenReturn(listOf(advancePaymentToPrisonerEntity))
+        whenever(
+          advanceRecordRepository.saveAndFlush(savedAdvanceEntity.capture()),
+        ).thenAnswer { it.arguments[0] }
+      }
 
-      advanceRepaymentResponse = advanceRecordService.repayAdvance(
-        advanceRepaymentRequest,
-        advanceId = advanceId,
-        idempotencyKey = idempotency,
-      )
-      val glRequest = transactionToGl.firstValue
+      @Test
+      fun `should create a transaction in GL for the advance repayment`() {
+        whenever(
+          advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
+        ).thenReturn(listOf(advancePaymentToPrisonerEntity))
 
-      assertThat(glRequest.reference).isEqualTo("")
-      assertThat(glRequest.amount).isEqualTo(advanceRepaymentRequest.amount)
-      assertThat(glRequest.entrySequence).isEqualTo(2)
-      assertThat(glRequest.legacyTransactionId).isEqualTo(advanceRepaymentRequest.legacyTransactionId)
-      assertThat(glRequest.timestamp).isEqualTo(advanceRepaymentRequest.createdAt)
-      assertThat(glRequest.description).isEqualTo(advanceRepaymentRequest.description)
-      assertThat(glRequest.postings).hasSize(2)
-
-      val debitPosting = glRequest.postings.first { it.type == CreatePostingRequest.Type.DR }
-      assertThat(debitPosting.entrySequence).isEqualTo(1)
-      assertThat(debitPosting.amount).isEqualTo(advanceRepaymentRequest.amount)
-      assertThat(debitPosting.subAccountId).isEqualTo(prisonerSubAccount)
-
-      val creditPosting = glRequest.postings.first { it.type == CreatePostingRequest.Type.CR }
-      assertThat(creditPosting.entrySequence).isEqualTo(2)
-      assertThat(creditPosting.amount).isEqualTo(advanceRepaymentRequest.amount)
-      assertThat(creditPosting.subAccountId).isEqualTo(prisonSubAccount)
-    }
-
-    @Test
-    fun `should save the advance repayment to the repository`() {
-      whenever(
-        advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
-      ).thenReturn(listOf(advancePaymentToPrisonerEntity))
-
-      advanceRepaymentResponse = advanceRecordService.repayAdvance(
-        advanceRepaymentRequest,
-        advanceId = advanceId,
-        idempotencyKey = idempotency,
-      )
-      val savedAdvanceRepayment = savedPaymentEntity.firstValue
-      verify(
-        advancePaymentRepository,
-        times(1),
-      ).saveAndFlush(any<AdvancePaymentEntity>())
-
-      assertThat(advanceRepaymentResponse.id).isEqualTo(savedAdvanceRepayment.id)
-      assertThat(savedAdvanceRepayment.prisonerPostingType).isEqualTo(PostingType.DR)
-
-      assertThat(advanceRepaymentResponse.advanceId).isEqualTo(advanceId)
-      assertThat(advanceRepaymentResponse.legacyTransactionId).isEqualTo(advanceRepaymentRequest.legacyTransactionId)
-      assertThat(advanceRepaymentResponse.amount).isEqualTo(advanceRepaymentRequest.amount)
-      assertThat(advanceRepaymentResponse.createdAt).isEqualTo(advanceRepaymentRequest.createdAt)
-      assertThat(advanceRepaymentResponse.createdBy).isEqualTo(advanceRepaymentRequest.createdBy)
-      assertThat(advanceRepaymentResponse.transactionId).isEqualTo(glTransactionId)
-    }
-
-    @Test
-    fun `should update the advance when a repayment zeros the balance`() {
-      val advanceRepayment = AdvancePaymentEntity(
-        advanceRecordId = advanceEntity.id,
-        transactionId = UUID.randomUUID(),
-        prisonerPostingType = PostingType.DR,
-        amount = advanceAmount / 2,
-        timestamp = Instant.now(),
-        createdBy = "TEST",
-      )
-
-      whenever(
-        advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
-      ).thenReturn(listOf(advancePaymentToPrisonerEntity, advanceRepayment))
-
-      val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
-        amount = advanceAmount / 2,
-        legacyTransactionId = 123,
-        createdAt = Instant.now(),
-        createdBy = "TEST",
-        description = "Test description",
-        entrySequence = 2,
-      )
-
-      advanceRepaymentResponse = advanceRecordService.repayAdvance(
-        advanceRepaymentRequest,
-        advanceId = advanceId,
-        idempotencyKey = idempotency,
-      )
-
-      verify(
-        advancePaymentRepository,
-        times(1),
-      ).findAdvancePaymentEntitiesByAdvanceRecordId(advanceId)
-
-      verify(advanceRecordRepository, times(1)).saveAndFlush(any<AdvanceRecordEntity>())
-
-      val updatedAdvance = savedAdvanceEntity.firstValue
-
-      assertThat(updatedAdvance.id).isEqualTo(advanceId)
-      assertThat(updatedAdvance.status).isEqualTo(AdvanceStatus.REPAID)
-      assertThat(updatedAdvance.updatedAt).isNotNull()
-    }
-
-    @Test
-    fun `should not update the advance when a repayment does not zero the balance`() {
-      whenever(
-        advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
-      ).thenReturn(listOf(advancePaymentToPrisonerEntity))
-
-      val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
-        amount = 1,
-        legacyTransactionId = 123,
-        createdAt = Instant.now(),
-        createdBy = "TEST",
-        description = "Test description",
-        entrySequence = 2,
-      )
-
-      advanceRepaymentResponse = advanceRecordService.repayAdvance(
-        advanceRepaymentRequest,
-        advanceId = advanceId,
-        idempotencyKey = idempotency,
-      )
-
-      verify(
-        advancePaymentRepository,
-        times(1),
-      ).findAdvancePaymentEntitiesByAdvanceRecordId(advanceId)
-
-      verify(advanceRecordRepository, times(1)).saveAndFlush(any<AdvanceRecordEntity>())
-
-      val updatedAdvance = savedAdvanceEntity.firstValue
-
-      assertThat(updatedAdvance.id).isEqualTo(advanceId)
-      assertThat(updatedAdvance.status).isEqualTo(AdvanceStatus.ACTIVE)
-      assertThat(updatedAdvance.updatedAt).isNull()
-    }
-
-    @Test
-    fun `should return the transaction without throwing if it already exists in the mapping table`() {
-      val legacyTransactionId = 123L
-
-      val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
-        amount = 1,
-        legacyTransactionId = legacyTransactionId,
-        createdAt = Instant.now(),
-        createdBy = "TEST",
-        description = "Test description",
-        entrySequence = 2,
-      )
-
-      val glUUID = UUID.randomUUID()
-
-      val advancePaymentEntity = AdvancePaymentEntity(
-        id = UUID.randomUUID(),
-        advanceRecordId = advanceEntity.id,
-        transactionId = glUUID,
-        prisonerPostingType = PostingType.DR,
-        amount = advanceRepaymentRequest.amount,
-        timestamp = advanceRepaymentRequest.createdAt,
-        createdBy = advanceRepaymentRequest.createdBy,
-      )
-
-      whenever(advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceId))
-        .thenReturn(listOf(advancePaymentToPrisonerEntity))
-
-      whenever(
-        advanceRecordService.postAdvanceRepaymentTransaction(
-          advanceRepaymentRequest,
-          prisonID,
-          prisonNumber,
-          idempotency,
-        ),
-      ).thenAnswer(Answer { glUUID })
-
-      whenever(advanceRecordRepository.saveAndFlush(savedAdvanceEntity.capture()))
-        .thenAnswer { it.arguments[0] }
-
-      whenever(
-        advancePaymentRepository.saveAndFlush<AdvancePaymentEntity>(
-          argThat { this.transactionId == glUUID },
-        ),
-      )
-        .thenThrow(DataIntegrityViolationException("uc_advance_record_payments_transaction_id"))
-
-      whenever(advancePaymentRepository.findByTransactionId(glUUID)).thenReturn(advancePaymentEntity)
-
-      assertDoesNotThrow {
-        advanceRecordService.repayAdvance(
+        advanceRepaymentResponse = advanceRecordService.repayAdvance(
           advanceRepaymentRequest,
           advanceId = advanceId,
           idempotencyKey = idempotency,
         )
+        val glRequest = transactionToGl.firstValue
+
+        assertThat(glRequest.reference).isEqualTo("")
+        assertThat(glRequest.amount).isEqualTo(advanceRepaymentRequest.amount)
+        assertThat(glRequest.entrySequence).isEqualTo(2)
+        assertThat(glRequest.legacyTransactionId).isEqualTo(advanceRepaymentRequest.legacyTransactionId)
+        assertThat(glRequest.timestamp).isEqualTo(advanceRepaymentRequest.createdAt)
+        assertThat(glRequest.description).isEqualTo(advanceRepaymentRequest.description)
+        assertThat(glRequest.postings).hasSize(2)
+
+        val debitPosting = glRequest.postings.first { it.type == CreatePostingRequest.Type.DR }
+        assertThat(debitPosting.entrySequence).isEqualTo(1)
+        assertThat(debitPosting.amount).isEqualTo(advanceRepaymentRequest.amount)
+        assertThat(debitPosting.subAccountId).isEqualTo(prisonerSubAccount)
+
+        val creditPosting = glRequest.postings.first { it.type == CreatePostingRequest.Type.CR }
+        assertThat(creditPosting.entrySequence).isEqualTo(2)
+        assertThat(creditPosting.amount).isEqualTo(advanceRepaymentRequest.amount)
+        assertThat(creditPosting.subAccountId).isEqualTo(prisonSubAccount)
       }
 
-      val savedRepayment = advanceRecordService.repayAdvance(
-        advanceRepaymentRequest,
-        advanceId = advanceId,
-        idempotencyKey = idempotency,
-      )
+      @Test
+      fun `should save the advance repayment to the repository`() {
+        whenever(
+          advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
+        ).thenReturn(listOf(advancePaymentToPrisonerEntity))
 
-      assertThat(savedRepayment.transactionId).isEqualTo(glUUID)
-    }
-  }
-
-  @Nested
-  inner class RepayAdvanceErrors {
-    @Test
-    fun `should throw a bad request exception when the repayment is greater than the outstanding balance`() {
-      whenever { advanceRecordRepository.getAdvanceRecordEntityById(advanceId) }.thenReturn(
-        advanceEntity,
-      )
-
-      whenever(
-        advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
-      ).thenReturn(listOf(advancePaymentToPrisonerEntity))
-
-      val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
-        amount = 999999999,
-        legacyTransactionId = 123,
-        createdAt = Instant.now(),
-        createdBy = "TEST",
-        description = "Test description",
-        entrySequence = 2,
-      )
-
-      val exception = assertThrows<CustomException> {
-        advanceRecordService.repayAdvance(
+        advanceRepaymentResponse = advanceRecordService.repayAdvance(
           advanceRepaymentRequest,
           advanceId = advanceId,
           idempotencyKey = idempotency,
         )
+        val savedAdvanceRepayment = savedPaymentEntity.firstValue
+        verify(
+          advancePaymentRepository,
+          times(1),
+        ).saveAndFlush(any<AdvancePaymentEntity>())
+
+        assertThat(advanceRepaymentResponse.id).isEqualTo(savedAdvanceRepayment.id)
+        assertThat(savedAdvanceRepayment.prisonerPostingType).isEqualTo(PostingType.DR)
+
+        assertThat(advanceRepaymentResponse.advanceId).isEqualTo(advanceId)
+        assertThat(advanceRepaymentResponse.legacyTransactionId).isEqualTo(advanceRepaymentRequest.legacyTransactionId)
+        assertThat(advanceRepaymentResponse.amount).isEqualTo(advanceRepaymentRequest.amount)
+        assertThat(advanceRepaymentResponse.createdAt).isEqualTo(advanceRepaymentRequest.createdAt)
+        assertThat(advanceRepaymentResponse.createdBy).isEqualTo(advanceRepaymentRequest.createdBy)
+        assertThat(advanceRepaymentResponse.transactionId).isEqualTo(glTransactionId)
       }
 
-      assertThat(exception.status).isEqualTo(HttpStatus.BAD_REQUEST)
-      assertThat(exception.message).isEqualTo("Repayments cannot exceed the balance of the advance record")
-    }
+      @Test
+      fun `should update the advance when a repayment zeros the balance`() {
+        val advanceRepayment = AdvancePaymentEntity(
+          advanceRecordId = advanceEntity.id,
+          transactionId = UUID.randomUUID(),
+          prisonerPostingType = PostingType.DR,
+          amount = advanceAmount / 2,
+          timestamp = Instant.now(),
+          createdBy = "TEST",
+        )
 
-    @Test
-    fun `should throw a bad request exception when the advance has a status of REPAID`() {
-      val repaidAdvance = AdvanceRecordEntity(
-        legacyPaymentProfileId = 123,
-        legacyInformationNumber = "123",
-        prisonNumber = "A231HX",
-        prisonID = "LEI",
-        amount = 123,
-        createdOn = Instant.now(),
-        repaymentStartDate = Instant.now(),
-        repaymentAmount = 1,
-        reference = "",
-        comment = "",
-        createdBy = "TEST",
-        updatedAt = null,
-        status = AdvanceStatus.REPAID,
-      )
+        whenever(
+          advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
+        ).thenReturn(listOf(advancePaymentToPrisonerEntity, advanceRepayment))
 
-      whenever { advanceRecordRepository.getAdvanceRecordEntityById(repaidAdvance.id) }.thenReturn(
-        repaidAdvance,
-      )
+        val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
+          amount = advanceAmount / 2,
+          legacyTransactionId = 123,
+          createdAt = Instant.now(),
+          createdBy = "TEST",
+          description = "Test description",
+          entrySequence = 2,
+        )
 
-      val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
-        amount = 11,
-        legacyTransactionId = 123,
-        createdAt = Instant.now(),
-        createdBy = "TEST",
-        description = "Test description",
-        entrySequence = 2,
-      )
-
-      val exception = assertThrows<CustomException> {
-        advanceRecordService.repayAdvance(
+        advanceRepaymentResponse = advanceRecordService.repayAdvance(
           advanceRepaymentRequest,
-          advanceId = repaidAdvance.id,
+          advanceId = advanceId,
           idempotencyKey = idempotency,
         )
+
+        verify(
+          advancePaymentRepository,
+          times(1),
+        ).findAdvancePaymentEntitiesByAdvanceRecordId(advanceId)
+
+        verify(advanceRecordRepository, times(1)).saveAndFlush(any<AdvanceRecordEntity>())
+
+        val updatedAdvance = savedAdvanceEntity.firstValue
+
+        assertThat(updatedAdvance.id).isEqualTo(advanceId)
+        assertThat(updatedAdvance.status).isEqualTo(AdvanceStatus.REPAID)
+        assertThat(updatedAdvance.updatedAt).isNotNull()
       }
 
-      assertThat(exception.status).isEqualTo(HttpStatus.BAD_REQUEST)
-      assertThat(exception.message).isEqualTo("Cannot repay an advance with the status of REPAID")
-    }
+      @Test
+      fun `should not update the advance when a repayment does not zero the balance`() {
+        whenever(
+          advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
+        ).thenReturn(listOf(advancePaymentToPrisonerEntity))
 
-    @Test
-    fun `should throw a bad request exception when the advance has a status of WRITTEN_OFF`() {
-      val repaidAdvance = AdvanceRecordEntity(
-        legacyPaymentProfileId = 123,
-        legacyInformationNumber = "123",
-        prisonNumber = "A231HX",
-        prisonID = "LEI",
-        amount = 123,
-        createdOn = Instant.now(),
-        repaymentStartDate = Instant.now(),
-        repaymentAmount = 1,
-        reference = "",
-        comment = "",
-        createdBy = "TEST",
-        updatedAt = null,
-        status = AdvanceStatus.WRITTEN_OFF,
-      )
+        val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
+          amount = 1,
+          legacyTransactionId = 123,
+          createdAt = Instant.now(),
+          createdBy = "TEST",
+          description = "Test description",
+          entrySequence = 2,
+        )
 
-      whenever { advanceRecordRepository.getAdvanceRecordEntityById(repaidAdvance.id) }.thenReturn(
-        repaidAdvance,
-      )
-
-      val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
-        amount = 11,
-        legacyTransactionId = 123,
-        createdAt = Instant.now(),
-        createdBy = "TEST",
-        description = "Test description",
-        entrySequence = 2,
-      )
-
-      val exception = assertThrows<CustomException> {
-        advanceRecordService.repayAdvance(
+        advanceRepaymentResponse = advanceRecordService.repayAdvance(
           advanceRepaymentRequest,
-          advanceId = repaidAdvance.id,
+          advanceId = advanceId,
           idempotencyKey = idempotency,
         )
+
+        verify(
+          advancePaymentRepository,
+          times(1),
+        ).findAdvancePaymentEntitiesByAdvanceRecordId(advanceId)
+
+        verify(advanceRecordRepository, times(1)).saveAndFlush(any<AdvanceRecordEntity>())
+
+        val updatedAdvance = savedAdvanceEntity.firstValue
+
+        assertThat(updatedAdvance.id).isEqualTo(advanceId)
+        assertThat(updatedAdvance.status).isEqualTo(AdvanceStatus.ACTIVE)
+        assertThat(updatedAdvance.updatedAt).isNull()
       }
 
-      assertThat(exception.status).isEqualTo(HttpStatus.BAD_REQUEST)
-      assertThat(exception.message).isEqualTo("Cannot repay an advance with the status of WRITTEN_OFF")
+      @Test
+      fun `should return the transaction without throwing if it already exists in the mapping table`() {
+        val legacyTransactionId = 123L
+
+        val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
+          amount = 1,
+          legacyTransactionId = legacyTransactionId,
+          createdAt = Instant.now(),
+          createdBy = "TEST",
+          description = "Test description",
+          entrySequence = 2,
+        )
+
+        val glUUID = UUID.randomUUID()
+
+        val advancePaymentEntity = AdvancePaymentEntity(
+          id = UUID.randomUUID(),
+          advanceRecordId = advanceEntity.id,
+          transactionId = glUUID,
+          prisonerPostingType = PostingType.DR,
+          amount = advanceRepaymentRequest.amount,
+          timestamp = advanceRepaymentRequest.createdAt,
+          createdBy = advanceRepaymentRequest.createdBy,
+        )
+
+        whenever(advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceId))
+          .thenReturn(listOf(advancePaymentToPrisonerEntity))
+
+        whenever(
+          advanceRecordService.postAdvanceRepaymentTransaction(
+            advanceRepaymentRequest,
+            prisonID,
+            prisonNumber,
+            idempotency,
+          ),
+        ).thenAnswer(Answer { glUUID })
+
+        whenever(advanceRecordRepository.saveAndFlush(savedAdvanceEntity.capture()))
+          .thenAnswer { it.arguments[0] }
+
+        whenever(
+          advancePaymentRepository.saveAndFlush<AdvancePaymentEntity>(
+            argThat { this.transactionId == glUUID },
+          ),
+        )
+          .thenThrow(DataIntegrityViolationException("uc_advance_record_payments_transaction_id"))
+
+        whenever(advancePaymentRepository.findByTransactionId(glUUID)).thenReturn(advancePaymentEntity)
+
+        assertDoesNotThrow {
+          advanceRecordService.repayAdvance(
+            advanceRepaymentRequest,
+            advanceId = advanceId,
+            idempotencyKey = idempotency,
+          )
+        }
+
+        val savedRepayment = advanceRecordService.repayAdvance(
+          advanceRepaymentRequest,
+          advanceId = advanceId,
+          idempotencyKey = idempotency,
+        )
+
+        assertThat(savedRepayment.transactionId).isEqualTo(glUUID)
+      }
+    }
+
+    @Nested
+    inner class RepayAdvanceErrors {
+      @Test
+      fun `should throw a bad request exception when the repayment is greater than the outstanding balance`() {
+        whenever { advanceRecordRepository.getAdvanceRecordEntityById(advanceId) }.thenReturn(
+          advanceEntity,
+        )
+
+        whenever(
+          advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
+        ).thenReturn(listOf(advancePaymentToPrisonerEntity))
+
+        val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
+          amount = 999999999,
+          legacyTransactionId = 123,
+          createdAt = Instant.now(),
+          createdBy = "TEST",
+          description = "Test description",
+          entrySequence = 2,
+        )
+
+        val exception = assertThrows<CustomException> {
+          advanceRecordService.repayAdvance(
+            advanceRepaymentRequest,
+            advanceId = advanceId,
+            idempotencyKey = idempotency,
+          )
+        }
+
+        assertThat(exception.status).isEqualTo(HttpStatus.BAD_REQUEST)
+        assertThat(exception.message).isEqualTo("Repayments cannot exceed the balance of the advance record")
+      }
+
+      @Test
+      fun `should throw a bad request exception when the advance has a status of REPAID`() {
+        val repaidAdvance = AdvanceRecordEntity(
+          legacyPaymentProfileId = 123,
+          legacyInformationNumber = "123",
+          prisonNumber = "A231HX",
+          prisonID = "LEI",
+          amount = 123,
+          createdOn = Instant.now(),
+          repaymentStartDate = Instant.now(),
+          repaymentAmount = 1,
+          reference = "",
+          comment = "",
+          createdBy = "TEST",
+          updatedAt = null,
+          status = AdvanceStatus.REPAID,
+        )
+
+        whenever { advanceRecordRepository.getAdvanceRecordEntityById(repaidAdvance.id) }.thenReturn(
+          repaidAdvance,
+        )
+
+        val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
+          amount = 11,
+          legacyTransactionId = 123,
+          createdAt = Instant.now(),
+          createdBy = "TEST",
+          description = "Test description",
+          entrySequence = 2,
+        )
+
+        val exception = assertThrows<CustomException> {
+          advanceRecordService.repayAdvance(
+            advanceRepaymentRequest,
+            advanceId = repaidAdvance.id,
+            idempotencyKey = idempotency,
+          )
+        }
+
+        assertThat(exception.status).isEqualTo(HttpStatus.BAD_REQUEST)
+        assertThat(exception.message).isEqualTo("Cannot repay an advance with the status of REPAID")
+      }
+
+      @Test
+      fun `should throw a bad request exception when the advance has a status of WRITTEN_OFF`() {
+        val repaidAdvance = AdvanceRecordEntity(
+          legacyPaymentProfileId = 123,
+          legacyInformationNumber = "123",
+          prisonNumber = "A231HX",
+          prisonID = "LEI",
+          amount = 123,
+          createdOn = Instant.now(),
+          repaymentStartDate = Instant.now(),
+          repaymentAmount = 1,
+          reference = "",
+          comment = "",
+          createdBy = "TEST",
+          updatedAt = null,
+          status = AdvanceStatus.WRITTEN_OFF,
+        )
+
+        whenever { advanceRecordRepository.getAdvanceRecordEntityById(repaidAdvance.id) }.thenReturn(
+          repaidAdvance,
+        )
+
+        val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
+          amount = 11,
+          legacyTransactionId = 123,
+          createdAt = Instant.now(),
+          createdBy = "TEST",
+          description = "Test description",
+          entrySequence = 2,
+        )
+
+        val exception = assertThrows<CustomException> {
+          advanceRecordService.repayAdvance(
+            advanceRepaymentRequest,
+            advanceId = repaidAdvance.id,
+            idempotencyKey = idempotency,
+          )
+        }
+
+        assertThat(exception.status).isEqualTo(HttpStatus.BAD_REQUEST)
+        assertThat(exception.message).isEqualTo("Cannot repay an advance with the status of WRITTEN_OFF")
+      }
     }
   }
 

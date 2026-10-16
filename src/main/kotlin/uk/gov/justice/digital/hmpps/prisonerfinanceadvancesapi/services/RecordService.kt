@@ -154,7 +154,7 @@ class RecordService(
       }
     }
 
-    return AdvanceRecordResponse.fromEntity(advance)
+    return AdvanceRecordResponse.fromEntity(advance, transactionGLId)
   }
 
   fun getAdvances(prisonNumber: String, pageSize: Int, pageNumber: Int): PagedResponse<AdvanceRecordResponse> {

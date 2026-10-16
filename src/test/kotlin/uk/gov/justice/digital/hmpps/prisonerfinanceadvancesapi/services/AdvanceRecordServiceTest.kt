@@ -51,7 +51,7 @@ class AdvanceRecordServiceTest {
   lateinit var advancePaymentRepository: AdvancePaymentRepository
 
   @Mock
-  lateinit var advanceWriteOffRepository : AdvanceWriteOffRepository
+  lateinit var advanceWriteOffRepository: AdvanceWriteOffRepository
 
   @Mock
   lateinit var generalLedgerApiClient: GeneralLedgerApiClient
@@ -1260,5 +1260,4 @@ class AdvanceRecordServiceTest {
       assertThat(errorResponse.status).isEqualTo(HttpStatus.BAD_REQUEST)
     }
   }
-
 }

@@ -350,7 +350,6 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
 
   @Test
   fun `should return 400 if you are repaying an advance which is written-off`() {
-    // TODO, change this setup once we have a write-off endpoint
     val advanceRecordEntity = AdvanceRecordEntity(
       legacyPaymentProfileId = 234,
       legacyInformationNumber = "123",

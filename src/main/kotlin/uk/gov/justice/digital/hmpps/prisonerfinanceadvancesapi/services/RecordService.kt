@@ -10,9 +10,11 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.exceptions.Custom
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.PostingType
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvancePaymentEntity
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceRecordEntity
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceWriteOffEntity
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreatePostingRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreateTransactionRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceWriteOffRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRepaymentRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceBalanceResponse
@@ -21,6 +23,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.PagedResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvancePaymentRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceWriteOffRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.utils.toPageResponse
 import java.time.Instant
 import java.util.UUID
@@ -32,6 +35,7 @@ class RecordService(
   private val insertService: InsertService,
   private val generalLedgerApiClient: GeneralLedgerApiClient,
   private val accountResolver: GeneralLedgerAccountResolver,
+  private val advanceWriteOffRepository: AdvanceWriteOffRepository,
 ) {
   private val prisonSubAccountRefAdvances = "1502:ADV"
   private val prisonerSubAccountRefAdvances = "SPENDS"
@@ -275,5 +279,30 @@ class RecordService(
       description = repaymentRequest.description,
       entrySequence = repaymentRequest.entrySequence,
     )
+  }
+
+  fun writeOffAdvance(advanceId: UUID, request: AdvanceWriteOffRequest): AdvanceRecordResponse {
+    val advance = advanceRecordRepository.getAdvanceRecordEntityById(advanceId)
+      ?: throw CustomException("Advance record not found", status = HttpStatus.NOT_FOUND)
+
+    if (advance.status != AdvanceStatus.ACTIVE) {
+      throw CustomException("Cannot write off an advance record that is not active", HttpStatus.BAD_REQUEST)
+    }
+
+    val outStandingBalance = calculateAdvanceBalance(advance)
+
+    advanceWriteOffRepository.save(
+      AdvanceWriteOffEntity(
+        advanceRecordId = advanceId,
+        amount = outStandingBalance,
+        createdBy = request.writtenOffBy,
+        createdAt = request.writeOffDateTime,
+      ),
+    )
+
+    val writtenOffAdvance = advance.copy(status = AdvanceStatus.WRITTEN_OFF)
+    val updatedAdvance = advanceRecordRepository.save(writtenOffAdvance)
+
+    return AdvanceRecordResponse.fromEntity(updatedAdvance)
   }
 }

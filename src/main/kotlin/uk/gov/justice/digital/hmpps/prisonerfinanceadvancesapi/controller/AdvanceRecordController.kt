@@ -27,7 +27,6 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISO
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
-import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRepaymentResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.PagedResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services.RecordService
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.utils.VALIDATION_MESSAGE_PRISON_NUMBER
@@ -149,7 +148,6 @@ class AdvanceRecordController(val recordService: RecordService) {
 
     return ResponseEntity.status(HttpStatus.OK).body(returnedAdvances)
   }
-
 
   @ApiResponses(
     value = [

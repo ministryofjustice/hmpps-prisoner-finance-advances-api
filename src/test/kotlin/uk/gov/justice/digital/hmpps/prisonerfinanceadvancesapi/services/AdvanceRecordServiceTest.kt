@@ -894,7 +894,7 @@ class AdvanceRecordServiceTest {
   }
 
   @Nested
-  inner class getAdvanceBalance {
+  inner class GetAdvanceBalance {
 
     val advanceEntity = AdvanceRecordEntity(
       legacyPaymentProfileId = 123,
@@ -923,7 +923,7 @@ class AdvanceRecordServiceTest {
 
     @Test
     fun `Should throw 404 exception when advance entity does not exist`() {
-      val error = assertThrows<CustomException>{
+      val error = assertThrows<CustomException> {
         advanceRecordService.getAdvanceBalance(UUID.randomUUID())
       }
 
@@ -959,7 +959,6 @@ class AdvanceRecordServiceTest {
       ).thenReturn(advanceEntity)
 
       val balance = advanceRecordService.getAdvanceBalance(advanceEntity.id)
-
 
       assertThat(balance.balanceOutstanding).isEqualTo(0)
       assertThat(balance.advanceAmount).isEqualTo(advanceEntity.amount)
@@ -997,7 +996,6 @@ class AdvanceRecordServiceTest {
 
       val balance = advanceRecordService.getAdvanceBalance(advanceEntity.id)
 
-
       assertThat(balance.balanceOutstanding).isEqualTo(40)
       assertThat(balance.advanceAmount).isEqualTo(advanceEntity.amount)
       assertThat(balance.weeklyPayments).isEqualTo(advanceEntity.repaymentAmount)
@@ -1034,7 +1032,6 @@ class AdvanceRecordServiceTest {
 
       val balance = advanceRecordService.getAdvanceBalance(advanceEntity.id)
 
-
       assertThat(balance.balanceOutstanding).isEqualTo(19)
       assertThat(balance.advanceAmount).isEqualTo(advanceEntity.amount)
       assertThat(balance.weeklyPayments).isEqualTo(advanceEntity.repaymentAmount)
@@ -1043,7 +1040,7 @@ class AdvanceRecordServiceTest {
 
     @ParameterizedTest
     @CsvSource("REPAID", "WRITTEN_OFF")
-    fun `should return a zero balance is advance is not active`(status: AdvanceStatus){
+    fun `should return a zero balance is advance is not active`(status: AdvanceStatus) {
       val inactiveAdvance = AdvanceRecordEntity(
         legacyPaymentProfileId = 123,
         legacyInformationNumber = "123",
@@ -1065,7 +1062,6 @@ class AdvanceRecordServiceTest {
       ).thenReturn(inactiveAdvance)
 
       val balance = advanceRecordService.getAdvanceBalance(advanceEntity.id)
-
 
       assertThat(balance.balanceOutstanding).isEqualTo(0)
       assertThat(balance.advanceAmount).isEqualTo(inactiveAdvance.amount)

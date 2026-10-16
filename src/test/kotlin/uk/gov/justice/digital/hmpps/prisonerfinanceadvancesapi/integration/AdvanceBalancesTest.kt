@@ -17,7 +17,7 @@ import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.time.Instant
 import java.util.UUID
 
-class AdvanceBalancesTest: IntegrationTestBase() {
+class AdvanceBalancesTest : IntegrationTestBase() {
 
   @Autowired lateinit var advanceRecordRepository: AdvanceRecordRepository
 
@@ -61,10 +61,9 @@ class AdvanceBalancesTest: IntegrationTestBase() {
           advanceId = advanceResponse.id,
           repaymentAmount = repaymentAmount,
           prisonSubAccountId = prisonSubAccountId,
-          prisonerSubAccountId = prisonerSubAccountId
+          prisonerSubAccountId = prisonerSubAccountId,
         )
       }
-
 
       advanceBalanceResponse = webTestClient.get().uri("/advances/${advanceResponse.id}/balance")
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
@@ -138,10 +137,9 @@ class AdvanceBalancesTest: IntegrationTestBase() {
           advanceId = advanceResponse.id,
           repaymentAmount = repaymentAmount,
           prisonSubAccountId = prisonSubAccountId,
-          prisonerSubAccountId = prisonerSubAccountId
+          prisonerSubAccountId = prisonerSubAccountId,
         )
       }
-
 
       advanceBalanceResponse = webTestClient.get().uri("/advances/${advanceResponse.id}/balance")
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))

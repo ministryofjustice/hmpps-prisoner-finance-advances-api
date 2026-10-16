@@ -1,9 +1,8 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses
 
 import io.swagger.v3.oas.annotations.media.Schema
-import java.util.UUID
 
-class AdvanceBalanceResponse (
+class AdvanceBalanceResponse(
   @field:Schema(description = "Initial amount of the advance")
   val advanceAmount: Long,
 

@@ -189,16 +189,17 @@ class RecordService(
   }
 
   fun getAdvanceBalance(advanceId: UUID): AdvanceBalanceResponse {
-    val advance = advanceRecordRepository.getAdvanceRecordEntityById(advanceId) ?:
-      throw CustomException("Advance record not found", HttpStatus.NOT_FOUND)
+    val advance = advanceRecordRepository.getAdvanceRecordEntityById(advanceId)
+      ?: throw CustomException("Advance record not found", HttpStatus.NOT_FOUND)
 
-    if (advance.status != AdvanceStatus.ACTIVE)
+    if (advance.status != AdvanceStatus.ACTIVE) {
       return AdvanceBalanceResponse(
         advanceAmount = advance.amount,
         balanceOutstanding = 0,
         weeklyPayments = advance.repaymentAmount,
-        remainingPayments = 0
+        remainingPayments = 0,
       )
+    }
 
     val outstandingBalance = calculateAdvanceBalance(advance)
 
@@ -206,7 +207,7 @@ class RecordService(
       advanceAmount = advance.amount,
       balanceOutstanding = outstandingBalance,
       weeklyPayments = advance.repaymentAmount,
-      remainingPayments = Math.ceilDiv(outstandingBalance, advance.repaymentAmount)
+      remainingPayments = Math.ceilDiv(outstandingBalance, advance.repaymentAmount),
     )
   }
 

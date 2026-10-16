@@ -79,10 +79,11 @@ class RecordIntegrationTest : IntegrationTestBase() {
         legacyTransactionId = 123,
       )
 
+      val glUUIDToReturn = UUID.randomUUID()
       generalLedgerApi.stubPostTransaction(
         creditorSubAccountUuid = prisonerSubAccountId.toString(),
         debtorSubAccountUuid = prisonSubAccountId.toString(),
-        returnUUID = UUID.randomUUID(),
+        returnUUID = glUUIDToReturn,
         amount = advanceRecordRequest.amount,
         legacyTransactionId = advanceRecordRequest.legacyTransactionId.toString(),
       )
@@ -100,6 +101,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
 
       assertThat(responseBody.id).isNotNull
       assertThat(responseBody.legacyInformationNumber).isEqualTo(advanceRecordRequest.legacyInformationNumber)
+      assertThat(responseBody.generalLedgerUUID).isEqualTo(glUUIDToReturn)
       generalLedgerApi.verify(1, postRequestedFor(urlPathMatching("/transactions")))
     }
 

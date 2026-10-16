@@ -49,9 +49,12 @@ data class AdvanceRecordResponse(
 
   @field:Schema(description = "Last time this advance record was changed")
   val updatedAt: Instant?,
+
+  @field:Schema(description = "The transaction UUID from General Ledger if one was created")
+  val generalLedgerUUID: UUID?,
 ) {
   companion object {
-    fun fromEntity(advanceRecordEntity: AdvanceRecordEntity) = AdvanceRecordResponse(
+    fun fromEntity(advanceRecordEntity: AdvanceRecordEntity, generalLedgerUUID: UUID? = null) = AdvanceRecordResponse(
       id = advanceRecordEntity.id,
       legacyPaymentProfileId = advanceRecordEntity.legacyPaymentProfileId,
       legacyInformationNumber = advanceRecordEntity.legacyInformationNumber,
@@ -66,6 +69,7 @@ data class AdvanceRecordResponse(
       createdBy = advanceRecordEntity.createdBy,
       status = advanceRecordEntity.status,
       updatedAt = advanceRecordEntity.updatedAt,
+      generalLedgerUUID = generalLedgerUUID,
     )
   }
 }

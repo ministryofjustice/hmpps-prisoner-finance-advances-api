@@ -263,7 +263,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
     val prisonerParentAccountId: UUID = UUID.randomUUID()
 
     @Test
-    fun `should return 200 when an advance has been successfully written off`() {
+    fun `should return 201 when an advance has been successfully written off`() {
       val advanceCreated = integrationTestHelpers.createAdvance(
         prisonNumber = prisonNumber,
         legacyPaymentProfileId = 123,
@@ -288,7 +288,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
         .bodyValue(advanceWriteOffRequest)
         .exchange()
         .expectStatus()
-        .isOk
+        .isCreated
         .expectBody<AdvanceRecordResponse>()
         .returnResult()
         .responseBody!!

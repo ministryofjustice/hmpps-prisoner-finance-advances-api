@@ -191,6 +191,6 @@ class AdvanceRecordController(val recordService: RecordService) {
     @RequestBody writeOffRequest: AdvanceWriteOffRequest,
   ): ResponseEntity<AdvanceRecordResponse> {
     val writtenOffResponse = recordService.writeOffAdvance(advanceId = advanceId, writeOffRequest)
-    return ResponseEntity.status(HttpStatus.OK).body(writtenOffResponse)
+    return ResponseEntity.status(HttpStatus.CREATED).body(writtenOffResponse)
   }
 }

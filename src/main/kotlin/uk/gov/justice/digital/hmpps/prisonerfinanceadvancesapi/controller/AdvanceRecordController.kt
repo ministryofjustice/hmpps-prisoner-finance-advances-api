@@ -152,7 +152,7 @@ class AdvanceRecordController(val recordService: RecordService) {
   @ApiResponses(
     value = [
       ApiResponse(
-        responseCode = "200",
+        responseCode = "201",
         description = "Advance was written off",
         content = [Content(mediaType = "application/json")],
       ),

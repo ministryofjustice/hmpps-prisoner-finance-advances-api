@@ -283,7 +283,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
         writtenOffBy = "TEST",
       )
 
-      val response = webTestClient.put().uri("/advances/${advanceCreated.id}/write-off")
+      val response = webTestClient.post().uri("/advances/${advanceCreated.id}/write-off")
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
         .bodyValue(advanceWriteOffRequest)
         .exchange()
@@ -322,7 +322,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
         writtenOffBy = "TEST",
       )
 
-      val error = webTestClient.put().uri("/advances/${advanceCreated.id}/write-off")
+      val error = webTestClient.post().uri("/advances/${advanceCreated.id}/write-off")
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
         .header("Content-Type", "application/json")
         .bodyValue(advanceWriteOffRequest)
@@ -344,7 +344,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
         writtenOffBy = "TEST",
       )
 
-      val error = webTestClient.put().uri("/advances/INVALID/write-off")
+      val error = webTestClient.post().uri("/advances/INVALID/write-off")
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
         .header("Content-Type", "application/json")
         .bodyValue(advanceWriteOffRequest)
@@ -361,7 +361,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `should return 400 if the body is invalid`() {
-      val error = webTestClient.put().uri("/advances/${UUID.randomUUID()}/write-off")
+      val error = webTestClient.post().uri("/advances/${UUID.randomUUID()}/write-off")
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
         .header("Content-Type", "application/json")
         .bodyValue("{\"hello\": \"world\"}")
@@ -386,7 +386,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
         writeOffDateTime = Instant.now(),
         writtenOffBy = "TEST",
       )
-      webTestClient.put().uri("/advances/${UUID.randomUUID()}/write-off")
+      webTestClient.post().uri("/advances/${UUID.randomUUID()}/write-off")
         .headers(setAuthorisation(roles = listOf(role)))
         .header("Content-Type", "application/json")
         .bodyValue(advanceWriteOffRequest)
@@ -400,7 +400,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
         writeOffDateTime = Instant.now(),
         writtenOffBy = "TEST",
       )
-      val response = webTestClient.put().uri("/advances/${UUID.randomUUID()}/write-off")
+      val response = webTestClient.post().uri("/advances/${UUID.randomUUID()}/write-off")
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
         .header("Content-Type", "application/json")
         .bodyValue(advanceWriteOffRequest)

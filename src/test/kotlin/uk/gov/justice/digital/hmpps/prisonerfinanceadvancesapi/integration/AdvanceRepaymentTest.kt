@@ -339,7 +339,6 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
 
   @Test
   fun `should return 400 if you are repaying an advance which is written-off`() {
-    // TODO, change this setup once we have a write-off endpoint
     val advanceRecordEntity = AdvanceRecordEntity(
       legacyPaymentProfileId = 234,
       legacyInformationNumber = "123",
@@ -408,7 +407,7 @@ class AdvanceRepaymentTest : IntegrationTestBase() {
       description = "Test description",
     )
 
-    val response = webTestClient.post().uri("/advances/${UUID.randomUUID()}/repay")
+    webTestClient.post().uri("/advances/${UUID.randomUUID()}/repay")
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
       .headers(setIdempotencyKey(UUID.randomUUID()))
       .bodyValue(request)

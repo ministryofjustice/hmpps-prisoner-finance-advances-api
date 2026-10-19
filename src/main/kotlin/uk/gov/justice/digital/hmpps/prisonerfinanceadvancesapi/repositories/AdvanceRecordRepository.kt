@@ -3,6 +3,7 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceRecordEntity
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import java.util.UUID
 
 interface AdvanceRecordRepository : JpaRepository<AdvanceRecordEntity, UUID> {
@@ -10,4 +11,5 @@ interface AdvanceRecordRepository : JpaRepository<AdvanceRecordEntity, UUID> {
 
   fun findByPrisonNumber(prisonNumber: String, pageable: Pageable): Page<AdvanceRecordEntity>
   fun getAdvanceRecordEntityById(advanceId: UUID): AdvanceRecordEntity?
+  fun findAdvanceRecordEntitiesByPrisonNumberAndStatus(prisonNumber: String, status: AdvanceStatus): List<AdvanceRecordEntity>
 }

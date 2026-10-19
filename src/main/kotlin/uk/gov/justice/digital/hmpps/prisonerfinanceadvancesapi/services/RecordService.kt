@@ -17,6 +17,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalled
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceWriteOffRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRepaymentRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AccountAdvanceBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRepaymentResponse
@@ -304,5 +305,19 @@ class RecordService(
     val updatedAdvance = advanceRecordRepository.save(writtenOffAdvance)
 
     return AdvanceRecordResponse.fromEntity(updatedAdvance)
+  }
+
+  fun getAccountAdvanceBalance(prisonNumber: String): AccountAdvanceBalanceResponse {
+    val allActiveAdvances = advanceRecordRepository.findAdvanceRecordEntitiesByPrisonNumberAndStatus(prisonNumber, AdvanceStatus.ACTIVE)
+
+    val totalActiveAdvanceAmount = allActiveAdvances.sumOf { it.amount }
+    val totalActiveOutstandingBalance = allActiveAdvances.sumOf { calculateAdvanceBalance(it) }
+    val totalActiveWeeklyPaymentAmount = allActiveAdvances.sumOf { it.repaymentAmount }
+
+    return AccountAdvanceBalanceResponse(
+      advancesAmount = totalActiveAdvanceAmount,
+      balancesOutstanding = totalActiveOutstandingBalance,
+      weeklyPaymentAmount = totalActiveWeeklyPaymentAmount,
+    )
   }
 }

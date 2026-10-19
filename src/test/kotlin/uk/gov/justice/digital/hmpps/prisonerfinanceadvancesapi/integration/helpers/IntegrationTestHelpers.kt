@@ -14,6 +14,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wirem
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.GeneralLedgerApiExtension.Companion.generalLedgerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceWriteOffRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRepaymentRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
@@ -72,6 +73,24 @@ class IntegrationTestHelpers(
       subAccountID = prisonerSubAccountId,
       parentAccountId = prisonerParentAccountId,
     )
+  }
+
+  fun writeOffAdvance(advanceId: UUID, amount: Long) {
+    val advanceWriteOffRequest = AdvanceWriteOffRequest(
+      writeOffDateTime = Instant.now(),
+      writtenOffBy = "TEST",
+      writtenOffAmount = amount,
+    )
+
+    webTestClient.post().uri("/advances/$advanceId/write-off")
+      .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+      .bodyValue(advanceWriteOffRequest)
+      .exchange()
+      .expectStatus()
+      .isCreated
+      .expectBody<AdvanceRecordResponse>()
+      .returnResult()
+      .responseBody!!
   }
 
   fun createAdvance(

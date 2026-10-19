@@ -164,6 +164,16 @@ class AdvanceRecordController(val recordService: RecordService) {
         content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
+        responseCode = "400",
+        description = "Bad Request - write off amount is greater than outstanding amount",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Bad Request - cannot write off an advance that is not active",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
         responseCode = "401",
         description = "Unauthorized - requires a valid OAuth2 token",
         content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],

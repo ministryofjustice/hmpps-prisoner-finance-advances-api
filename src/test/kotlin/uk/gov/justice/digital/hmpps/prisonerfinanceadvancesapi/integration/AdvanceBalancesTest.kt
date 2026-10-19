@@ -10,13 +10,11 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISO
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RW
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.GeneralLedgerApiExtension.Companion.generalLedgerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
-import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceRecordEntity
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AccountAdvanceBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
-import java.time.Instant
 import java.util.UUID
 
 class AdvanceBalancesTest : IntegrationTestBase() {
@@ -159,26 +157,27 @@ class AdvanceBalancesTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `Should return the balance of an advance that is written-off`() {
-      val advanceRecordEntity = AdvanceRecordEntity(
-        legacyPaymentProfileId = 234,
-        legacyInformationNumber = "123",
-        prisonNumber = "A1234BC",
-        prisonID = "LEI",
-        amount = 123,
-        createdOn = Instant.now(),
-        repaymentStartDate = Instant.now(),
+    fun `Should return the balance of an advance that is fully written-off`() {
+      val advanceResponse = integrationTestHelpers.createAdvance(
+        prisonNumber = "A1234AB",
+        legacyPaymentProfileId = 123,
+        legacyInformationNumber = "12312",
+        amount = advanceAmount,
+        prisonId = "LEI",
         repaymentAmount = 1,
-        reference = "",
-        comment = "",
-        createdBy = "TEST",
-        updatedAt = Instant.now(),
-        status = AdvanceStatus.WRITTEN_OFF,
+        status = AdvanceStatus.ACTIVE,
+        prisonerSubAccountId = prisonerSubAccountId,
+        prisonSubAccountId = prisonSubAccountId,
+        prisonParentAccountId = prisonParentAccountId,
+        prisonerParentAccountId = prisonerParentAccountId,
       )
 
-      advanceRecordRepository.saveAndFlush(advanceRecordEntity)
+      integrationTestHelpers.writeOffAdvance(
+        advanceId = advanceResponse.id,
+        amount = advanceResponse.amount,
+      )
 
-      val advanceBalanceResponse = webTestClient.get().uri("/advances/${advanceRecordEntity.id}/balance")
+      val advanceBalanceResponse = webTestClient.get().uri("/advances/${advanceResponse.id}/balance")
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
         .exchange()
         .expectStatus()
@@ -188,9 +187,88 @@ class AdvanceBalancesTest : IntegrationTestBase() {
         .responseBody!!
 
       assertThat(advanceBalanceResponse.balanceOutstanding).isEqualTo(0)
-      assertThat(advanceBalanceResponse.advanceAmount).isEqualTo(advanceRecordEntity.amount)
+      assertThat(advanceBalanceResponse.advanceAmount).isEqualTo(advanceResponse.amount)
       assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(0)
-      assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(advanceRecordEntity.repaymentAmount)
+      assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(advanceResponse.repaymentAmount)
+    }
+
+    @Test
+    fun `Should return the balance of an advance that is partially written-off`() {
+      val advanceResponse = integrationTestHelpers.createAdvance(
+        prisonNumber = "A1234AB",
+        legacyPaymentProfileId = 123,
+        legacyInformationNumber = "12312",
+        amount = 100,
+        prisonId = "LEI",
+        repaymentAmount = 10,
+        status = AdvanceStatus.ACTIVE,
+        prisonerSubAccountId = prisonerSubAccountId,
+        prisonSubAccountId = prisonSubAccountId,
+        prisonParentAccountId = prisonParentAccountId,
+        prisonerParentAccountId = prisonerParentAccountId,
+      )
+
+      integrationTestHelpers.writeOffAdvance(
+        advanceId = advanceResponse.id,
+        amount = 10,
+      )
+
+      val advanceBalanceResponse = webTestClient.get().uri("/advances/${advanceResponse.id}/balance")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .exchange()
+        .expectStatus()
+        .isOk
+        .expectBody<AdvanceBalanceResponse>()
+        .returnResult()
+        .responseBody!!
+
+      assertThat(advanceBalanceResponse.balanceOutstanding).isEqualTo(90)
+      assertThat(advanceBalanceResponse.advanceAmount).isEqualTo(advanceResponse.amount)
+      assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(9)
+      assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(advanceResponse.repaymentAmount)
+    }
+
+    @Test
+    fun `Should return the balance of an advance that is partially written-off and partially repaid`() {
+      val advanceResponse = integrationTestHelpers.createAdvance(
+        prisonNumber = "A1234AB",
+        legacyPaymentProfileId = 123,
+        legacyInformationNumber = "12312",
+        amount = 100,
+        prisonId = "LEI",
+        repaymentAmount = 5,
+        status = AdvanceStatus.ACTIVE,
+        prisonerSubAccountId = prisonerSubAccountId,
+        prisonSubAccountId = prisonSubAccountId,
+        prisonParentAccountId = prisonParentAccountId,
+        prisonerParentAccountId = prisonerParentAccountId,
+      )
+
+      integrationTestHelpers.repayAdvance(
+        advanceId = advanceResponse.id,
+        repaymentAmount = advanceResponse.repaymentAmount,
+        prisonSubAccountId = prisonSubAccountId,
+        prisonerSubAccountId = prisonerSubAccountId,
+      )
+
+      integrationTestHelpers.writeOffAdvance(
+        advanceId = advanceResponse.id,
+        amount = 10,
+      )
+
+      val advanceBalanceResponse = webTestClient.get().uri("/advances/${advanceResponse.id}/balance")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .exchange()
+        .expectStatus()
+        .isOk
+        .expectBody<AdvanceBalanceResponse>()
+        .returnResult()
+        .responseBody!!
+
+      assertThat(advanceBalanceResponse.balanceOutstanding).isEqualTo(85)
+      assertThat(advanceBalanceResponse.advanceAmount).isEqualTo(advanceResponse.amount)
+      assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(17)
+      assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(advanceResponse.repaymentAmount)
     }
 
     @Test

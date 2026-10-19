@@ -5,6 +5,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.clients.GeneralLedgerApiClient
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.exceptions.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.PostingType
@@ -189,8 +190,11 @@ class RecordService(
 
   fun calculateAdvanceBalance(advance: AdvanceRecordEntity): Long {
     // TODO: this might need a refactor for when migrated advances that don't have payments will get added - PFI 1659
-    return advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advance.id)
+    val writeOffs = advanceWriteOffRepository.findByAdvanceRecordId(advance.id).sumOf { it.amount }
+    val payments = advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advance.id)
       .fold(0L) { s, it -> s + applyPostingType(it.prisonerPostingType, it.amount) }
+
+    return payments - writeOffs
   }
 
   fun getAdvanceBalance(advanceId: UUID): AdvanceBalanceResponse {
@@ -282,8 +286,9 @@ class RecordService(
     )
   }
 
+  @Transactional(rollbackFor = [Exception::class, Error::class])
   fun writeOffAdvance(advanceId: UUID, request: AdvanceWriteOffRequest): AdvanceRecordResponse {
-    val advance = advanceRecordRepository.getAdvanceRecordEntityById(advanceId)
+    var advance = advanceRecordRepository.getAdvanceRecordEntityById(advanceId)
       ?: throw CustomException("Advance record not found", status = HttpStatus.NOT_FOUND)
 
     if (advance.status != AdvanceStatus.ACTIVE) {
@@ -299,16 +304,19 @@ class RecordService(
     advanceWriteOffRepository.save(
       AdvanceWriteOffEntity(
         advanceRecordId = advanceId,
-        amount = outStandingBalance,
+        amount = request.writtenOffAmount,
         createdBy = request.writtenOffBy,
         createdAt = request.writeOffDateTime,
       ),
     )
 
-    val writtenOffAdvance = advance.copy(status = AdvanceStatus.WRITTEN_OFF)
-    val updatedAdvance = advanceRecordRepository.save(writtenOffAdvance)
+    if (outStandingBalance == request.writtenOffAmount) {
+      advance = advanceRecordRepository.save(
+        advance.copy(status = AdvanceStatus.WRITTEN_OFF),
+      )
+    }
 
-    return AdvanceRecordResponse.fromEntity(updatedAdvance)
+    return AdvanceRecordResponse.fromEntity(advance)
   }
 
   fun getAccountAdvanceBalance(prisonNumber: String): AccountAdvanceBalanceResponse {

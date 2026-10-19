@@ -13,7 +13,7 @@ class AdvanceWriteOffEntity(
   @Id
   var id: UUID = UUID.randomUUID(),
 
-  @Column(name = "advance_record_id", nullable = false, unique = true)
+  @Column(name = "advance_record_id", nullable = false, unique = false)
   var advanceRecordId: UUID,
 
   @Column(name = "amount", nullable = false, unique = false)

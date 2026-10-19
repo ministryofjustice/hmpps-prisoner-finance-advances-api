@@ -292,6 +292,10 @@ class RecordService(
 
     val outStandingBalance = calculateAdvanceBalance(advance)
 
+    if (outStandingBalance < request.writtenOffAmount) {
+      throw CustomException("Write off amount should be less then or equal to the outstanding balance", HttpStatus.BAD_REQUEST)
+    }
+
     advanceWriteOffRepository.save(
       AdvanceWriteOffEntity(
         advanceRecordId = advanceId,

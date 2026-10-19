@@ -283,6 +283,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
       val advanceWriteOffRequest = AdvanceWriteOffRequest(
         writeOffDateTime = Instant.now(),
         writtenOffBy = "TEST",
+        writtenOffAmount = 10L,
       )
 
       val response = webTestClient.post().uri("/advances/${advanceCreated.id}/write-off")
@@ -322,6 +323,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
       val advanceWriteOffRequest = AdvanceWriteOffRequest(
         writeOffDateTime = Instant.now(),
         writtenOffBy = "TEST",
+        writtenOffAmount = 10L,
       )
 
       val error = webTestClient.post().uri("/advances/${advanceCreated.id}/write-off")
@@ -344,6 +346,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
       val advanceWriteOffRequest = AdvanceWriteOffRequest(
         writeOffDateTime = Instant.now(),
         writtenOffBy = "TEST",
+        writtenOffAmount = 10L,
       )
 
       val error = webTestClient.post().uri("/advances/INVALID/write-off")
@@ -387,6 +390,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
       val advanceWriteOffRequest = AdvanceWriteOffRequest(
         writeOffDateTime = Instant.now(),
         writtenOffBy = "TEST",
+        writtenOffAmount = 10L,
       )
       webTestClient.post().uri("/advances/${UUID.randomUUID()}/write-off")
         .headers(setAuthorisation(roles = listOf(role)))
@@ -401,6 +405,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
       val advanceWriteOffRequest = AdvanceWriteOffRequest(
         writeOffDateTime = Instant.now(),
         writtenOffBy = "TEST",
+        writtenOffAmount = 10L,
       )
       val response = webTestClient.post().uri("/advances/${UUID.randomUUID()}/write-off")
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
@@ -415,5 +420,75 @@ class RecordIntegrationTest : IntegrationTestBase() {
       assertThat(response.status).isEqualTo(404)
       assertThat(response.userMessage).isEqualTo("Advance record not found")
     }
+
+    @Test
+    fun `Should return 400 when the write off amount is greater then the outstanding balance`() {
+      val advanceCreated = integrationTestHelpers.createAdvance(
+        prisonNumber = prisonNumber,
+        legacyPaymentProfileId = 123,
+        legacyInformationNumber = "1234",
+        amount = 10,
+        prisonId = prisonId,
+        repaymentAmount = 5,
+        status = AdvanceStatus.ACTIVE,
+        prisonerSubAccountId = prisonerSubAccountId,
+        prisonSubAccountId = prisonSubAccountId,
+        prisonParentAccountId = prisonParentAccountId,
+        prisonerParentAccountId = prisonerParentAccountId,
+      )
+
+      val advanceWriteOffRequest = AdvanceWriteOffRequest(
+        writeOffDateTime = Instant.now(),
+        writtenOffBy = "TEST",
+        writtenOffAmount = 11L,
+      )
+
+      val response = webTestClient.post().uri("/advances/${advanceCreated.id}/write-off")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .bodyValue(advanceWriteOffRequest)
+        .exchange()
+        .expectStatus()
+        .isBadRequest
+        .expectBody<ErrorResponse>()
+        .returnResult()
+        .responseBody!!
+
+      assertThat(response.userMessage).isEqualTo("Write off amount should be less then or equal to the outstanding balance")
+    }
+
+    /*@Test
+    fun `Should return 400 when the write off amount is less then the outstanding balance` (){
+      val advanceCreated = integrationTestHelpers.createAdvance(
+        prisonNumber = prisonNumber,
+        legacyPaymentProfileId = 123,
+        legacyInformationNumber = "1234",
+        amount = 10,
+        prisonId = prisonId,
+        repaymentAmount = 5,
+        status = AdvanceStatus.ACTIVE,
+        prisonerSubAccountId = prisonerSubAccountId,
+        prisonSubAccountId = prisonSubAccountId,
+        prisonParentAccountId = prisonParentAccountId,
+        prisonerParentAccountId = prisonerParentAccountId,
+      )
+
+      val advanceWriteOffRequest = AdvanceWriteOffRequest(
+        writeOffDateTime = Instant.now(),
+        writtenOffBy = "TEST",
+        writtenOffAmount = 11L
+      )
+
+      val response = webTestClient.post().uri("/advances/${advanceCreated.id}/write-off")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .bodyValue(advanceWriteOffRequest)
+        .exchange()
+        .expectStatus()
+        .isBadRequest
+        .expectBody<ErrorResponse>()
+        .returnResult()
+        .responseBody!!
+
+      assertThat(response.userMessage).isEqualTo("Write off amount should be greater than 0!")
+    }*/
   }
 }

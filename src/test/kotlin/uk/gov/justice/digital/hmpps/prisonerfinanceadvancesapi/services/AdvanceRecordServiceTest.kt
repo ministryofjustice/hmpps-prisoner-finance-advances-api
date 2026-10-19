@@ -1135,6 +1135,7 @@ class AdvanceRecordServiceTest {
   val advanceWriteOffRequest = AdvanceWriteOffRequest(
     writeOffDateTime = Instant.now(),
     writtenOffBy = "TEST",
+    writtenOffAmount = 10L,
   )
 
   @Nested
@@ -1255,6 +1256,76 @@ class AdvanceRecordServiceTest {
 
       val errorResponse = assertThrows<CustomException> {
         advanceRecordService.writeOffAdvance(advanceId, advanceWriteOffRequest)
+      }
+
+      assertThat(errorResponse.status).isEqualTo(HttpStatus.BAD_REQUEST)
+    }
+  }
+
+  @Nested
+  inner class WriteOffThrowsErrorIfAmountWrittenOffIsIncorrect {
+    @Test
+    fun `Should throw a bad request if the amount written off is greater then the advance balance`() {
+
+      val advancePaymentCreditToPrisoner = AdvancePaymentEntity(
+        advanceRecordId = advanceEntity.id,
+        transactionId = UUID.randomUUID(),
+        prisonerPostingType = PostingType.CR,
+        amount = advanceEntity.amount,
+        timestamp = Instant.now(),
+        createdBy = "TEST",
+      )
+
+      whenever(
+        advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(listOf(advancePaymentCreditToPrisoner))
+
+      val overpaidWriteOffRequest = advanceWriteOffRequest.copy(writtenOffAmount = 10001L)
+
+      whenever { advanceRecordRepository.getAdvanceRecordEntityById(advanceId) }.thenReturn(
+        advanceEntity,
+      )
+
+      val errorResponse = assertThrows<CustomException> {
+        advanceRecordService.writeOffAdvance(advanceId, overpaidWriteOffRequest)
+      }
+
+      assertThat(errorResponse.status).isEqualTo(HttpStatus.BAD_REQUEST)
+    }
+
+    @Test
+    fun `Should throw a bad request if the amount written off is greater then the outstanding balance`() {
+
+      val advancePaymentCreditToPrisoner = AdvancePaymentEntity(
+        advanceRecordId = advanceEntity.id,
+        transactionId = UUID.randomUUID(),
+        prisonerPostingType = PostingType.CR,
+        amount = advanceEntity.amount,
+        timestamp = Instant.now(),
+        createdBy = "TEST",
+      )
+
+      val advancePaymentDebitToPrisonerOne = AdvancePaymentEntity(
+        advanceRecordId = advanceEntity.id,
+        transactionId = UUID.randomUUID(),
+        prisonerPostingType = PostingType.DR,
+        amount = 8000L,
+        timestamp = Instant.now(),
+        createdBy = "TEST",
+      )
+
+      whenever(
+        advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(listOf(advancePaymentCreditToPrisoner, advancePaymentDebitToPrisonerOne))
+
+      val overpaidWriteOffRequest = advanceWriteOffRequest.copy(writtenOffAmount = 3000L)
+
+      whenever { advanceRecordRepository.getAdvanceRecordEntityById(advanceId) }.thenReturn(
+        advanceEntity,
+      )
+
+      val errorResponse = assertThrows<CustomException> {
+        advanceRecordService.writeOffAdvance(advanceId, overpaidWriteOffRequest)
       }
 
       assertThat(errorResponse.status).isEqualTo(HttpStatus.BAD_REQUEST)

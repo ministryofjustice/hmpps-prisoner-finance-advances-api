@@ -36,6 +36,9 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvancePaymentRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
@@ -950,14 +953,17 @@ class AdvanceRecordServiceTest {
   @Nested
   inner class GetAdvanceBalance {
 
+    val advanceDate = LocalDate.parse("20/10/2026", DateTimeFormatter.ofPattern("dd/MM/yyyy")).atStartOfDay(ZoneId.of("Europe/London")).toInstant()
+    val expectedNextPaymentDate = LocalDate.parse("27/10/2026", DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+
     val advanceEntity = AdvanceRecordEntity(
       legacyPaymentProfileId = 123,
       legacyInformationNumber = "123312",
       prisonNumber = "A123XS",
       prisonID = "LEI",
       amount = 100,
-      createdOn = Instant.now(),
-      repaymentStartDate = Instant.now(),
+      createdOn = advanceDate,
+      repaymentStartDate = advanceDate,
       repaymentAmount = 10,
       reference = "",
       comment = "",
@@ -1054,6 +1060,7 @@ class AdvanceRecordServiceTest {
       assertThat(balance.advanceAmount).isEqualTo(advanceEntity.amount)
       assertThat(balance.weeklyPaymentAmount).isEqualTo(advanceEntity.repaymentAmount)
       assertThat(balance.remainingPayments).isEqualTo(4)
+      assertThat(balance.nextPaymentDate).isEqualTo(expectedNextPaymentDate)
     }
 
     @Test
@@ -1090,6 +1097,7 @@ class AdvanceRecordServiceTest {
       assertThat(balance.advanceAmount).isEqualTo(advanceEntity.amount)
       assertThat(balance.weeklyPaymentAmount).isEqualTo(advanceEntity.repaymentAmount)
       assertThat(balance.remainingPayments).isEqualTo(2)
+      assertThat(balance.nextPaymentDate).isEqualTo(expectedNextPaymentDate)
     }
 
     @ParameterizedTest

@@ -20,6 +20,8 @@ import org.mockito.kotlin.times
 import org.mockito.kotlin.whenever
 import org.mockito.stubbing.Answer
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.Pageable
 import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.clients.GeneralLedgerApiClient
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.exceptions.CustomException
@@ -110,7 +112,7 @@ class AdvanceRecordServiceTest {
   )
 
   val advancePaymentToPrisonerEntity = AdvancePaymentEntity(
-    advanceRecordId = advanceEntity.id,
+    advanceRecord = advanceEntity,
     transactionId = UUID.randomUUID(),
     prisonerPostingType = PostingType.CR,
     amount = advanceAmount,
@@ -155,7 +157,7 @@ class AdvanceRecordServiceTest {
     )
 
     val advancePaymentEntity = AdvancePaymentEntity(
-      advanceRecordId = advanceEntity.id,
+      advanceRecord = advanceEntity,
       transactionId = glTransactionId,
       prisonerPostingType = PostingType.CR,
       amount = request.amount,
@@ -479,7 +481,7 @@ class AdvanceRecordServiceTest {
     )
 
     val advancePaymentToPrisonerEntity = AdvancePaymentEntity(
-      advanceRecordId = advanceEntity.id,
+      advanceRecord = advanceEntity,
       transactionId = UUID.randomUUID(),
       prisonerPostingType = PostingType.CR,
       amount = advanceAmount,
@@ -589,7 +591,7 @@ class AdvanceRecordServiceTest {
       @Test
       fun `should update the advance when a repayment zeros the balance`() {
         val advanceRepayment = AdvancePaymentEntity(
-          advanceRecordId = advanceEntity.id,
+          advanceRecord = advanceEntity,
           transactionId = UUID.randomUUID(),
           prisonerPostingType = PostingType.DR,
           amount = advanceAmount / 2,
@@ -682,7 +684,7 @@ class AdvanceRecordServiceTest {
 
         val advancePaymentEntity = AdvancePaymentEntity(
           id = UUID.randomUUID(),
-          advanceRecordId = advanceEntity.id,
+          advanceRecord = advanceEntity,
           transactionId = glUUID,
           prisonerPostingType = PostingType.DR,
           amount = advanceRepaymentRequest.amount,
@@ -872,7 +874,7 @@ class AdvanceRecordServiceTest {
     )
 
     val advancePaymentCreditToPrisoner = AdvancePaymentEntity(
-      advanceRecordId = advanceEntity.id,
+      advanceRecord = advanceEntity,
       transactionId = UUID.randomUUID(),
       prisonerPostingType = PostingType.CR,
       amount = advanceEntity.amount,
@@ -894,7 +896,7 @@ class AdvanceRecordServiceTest {
     @Test
     fun `should calculate the advance balance when the advance has some repayments`() {
       val advancePaymentDebitToPrisonerOne = AdvancePaymentEntity(
-        advanceRecordId = advanceEntity.id,
+        advanceRecord = advanceEntity,
         transactionId = UUID.randomUUID(),
         prisonerPostingType = PostingType.DR,
         amount = 1,
@@ -903,7 +905,7 @@ class AdvanceRecordServiceTest {
       )
 
       val advancePaymentDebitToPrisonerTwo = AdvancePaymentEntity(
-        advanceRecordId = advanceEntity.id,
+        advanceRecord = advanceEntity,
         transactionId = UUID.randomUUID(),
         prisonerPostingType = PostingType.DR,
         amount = 1,
@@ -923,7 +925,7 @@ class AdvanceRecordServiceTest {
     @Test
     fun `should calculate the advance balance when the advance is paid off`() {
       val advancePaymentDebitToPrisonerOne = AdvancePaymentEntity(
-        advanceRecordId = advanceEntity.id,
+        advanceRecord = advanceEntity,
         transactionId = UUID.randomUUID(),
         prisonerPostingType = PostingType.DR,
         amount = 50,
@@ -932,7 +934,7 @@ class AdvanceRecordServiceTest {
       )
 
       val advancePaymentDebitToPrisonerTwo = AdvancePaymentEntity(
-        advanceRecordId = advanceEntity.id,
+        advanceRecord = advanceEntity,
         transactionId = UUID.randomUUID(),
         prisonerPostingType = PostingType.DR,
         amount = 50,
@@ -973,7 +975,7 @@ class AdvanceRecordServiceTest {
     )
 
     val advancePaymentCreditToPrisoner = AdvancePaymentEntity(
-      advanceRecordId = advanceEntity.id,
+      advanceRecord = advanceEntity,
       transactionId = UUID.randomUUID(),
       prisonerPostingType = PostingType.CR,
       amount = advanceEntity.amount,
@@ -993,7 +995,7 @@ class AdvanceRecordServiceTest {
     @Test
     fun `Should calculate the balance when an advance is fully repaid`() {
       val advancePaymentDebitToPrisonerOne = AdvancePaymentEntity(
-        advanceRecordId = advanceEntity.id,
+        advanceRecord = advanceEntity,
         transactionId = UUID.randomUUID(),
         prisonerPostingType = PostingType.DR,
         amount = 50,
@@ -1002,7 +1004,7 @@ class AdvanceRecordServiceTest {
       )
 
       val advancePaymentDebitToPrisonerTwo = AdvancePaymentEntity(
-        advanceRecordId = advanceEntity.id,
+        advanceRecord = advanceEntity,
         transactionId = UUID.randomUUID(),
         prisonerPostingType = PostingType.DR,
         amount = 50,
@@ -1029,7 +1031,7 @@ class AdvanceRecordServiceTest {
     @Test
     fun `Should calculate the balance correctly when there is a balance outstanding`() {
       val advancePaymentDebitToPrisonerOne = AdvancePaymentEntity(
-        advanceRecordId = advanceEntity.id,
+        advanceRecord = advanceEntity,
         transactionId = UUID.randomUUID(),
         prisonerPostingType = PostingType.DR,
         amount = 50,
@@ -1038,7 +1040,7 @@ class AdvanceRecordServiceTest {
       )
 
       val advancePaymentDebitToPrisonerTwo = AdvancePaymentEntity(
-        advanceRecordId = advanceEntity.id,
+        advanceRecord = advanceEntity,
         transactionId = UUID.randomUUID(),
         prisonerPostingType = PostingType.DR,
         amount = 10,
@@ -1066,7 +1068,7 @@ class AdvanceRecordServiceTest {
     @Test
     fun `Should roundup remaining payments if one is below the weekly repayment amount`() {
       val advancePaymentDebitToPrisonerOne = AdvancePaymentEntity(
-        advanceRecordId = advanceEntity.id,
+        advanceRecord = advanceEntity,
         transactionId = UUID.randomUUID(),
         prisonerPostingType = PostingType.DR,
         amount = 50,
@@ -1075,7 +1077,7 @@ class AdvanceRecordServiceTest {
       )
 
       val advancePaymentDebitToPrisonerTwo = AdvancePaymentEntity(
-        advanceRecordId = advanceEntity.id,
+        advanceRecord = advanceEntity,
         transactionId = UUID.randomUUID(),
         prisonerPostingType = PostingType.DR,
         amount = 31,
@@ -1129,6 +1131,50 @@ class AdvanceRecordServiceTest {
       assertThat(balance.advanceAmount).isEqualTo(inactiveAdvance.amount)
       assertThat(balance.weeklyPaymentAmount).isEqualTo(inactiveAdvance.repaymentAmount)
       assertThat(balance.remainingPayments).isEqualTo(0)
+    }
+  }
+
+  @Nested
+  inner class GetPrisonerRepayments {
+
+    @Test
+    fun `should call api and return paged response`() {
+      val pageCaptor = argumentCaptor<Pageable>()
+
+      val paymentEntity = AdvancePaymentEntity(
+        advanceRecord = advanceEntity,
+        transactionId = UUID.randomUUID(),
+        prisonerPostingType = PostingType.DR,
+        amount = 1,
+        timestamp = Instant.now(),
+        createdBy = "TEST",
+      )
+
+      whenever(
+        advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordIdAndPrisonerPostingType(
+          advanceRecordId = eq(advanceEntity.id),
+          prisonerPostingType = eq(PostingType.DR),
+          pageable = pageCaptor.capture(),
+        ),
+      ).thenReturn(
+        PageImpl(listOf(paymentEntity)),
+      )
+
+      val response = advanceRecordService.getPrisonerRepayments(
+        advanceId = advanceEntity.id,
+        pageNumber = 1,
+        pageSize = 25,
+      )
+
+      assertThat(response.content).hasSize(1)
+
+      assertThat(response.content[0].advanceId).isEqualTo(advanceEntity.id)
+      assertThat(response.content[0].id).isEqualTo(paymentEntity.id)
+
+      val pageReq = pageCaptor.firstValue
+
+      assertThat(pageReq.pageNumber).isEqualTo(0) // zero indexed
+      assertThat(pageReq.pageSize).isEqualTo(25)
     }
   }
 }

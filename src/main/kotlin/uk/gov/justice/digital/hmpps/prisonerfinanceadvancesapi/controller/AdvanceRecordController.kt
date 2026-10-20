@@ -106,7 +106,6 @@ class AdvanceRecordController(val recordService: RecordService) {
       ApiResponse(
         responseCode = "200",
         description = "Paginated advance records for prisonNumber",
-        content = [Content(mediaType = "application/json")],
       ),
       ApiResponse(
         responseCode = "400",

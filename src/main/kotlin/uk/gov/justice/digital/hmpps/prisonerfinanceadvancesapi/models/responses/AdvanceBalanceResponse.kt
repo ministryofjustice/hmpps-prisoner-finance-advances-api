@@ -20,6 +20,6 @@ class AdvanceBalanceResponse(
   @field:Schema(description = "Time of the balance calculation")
   val balanceDateTime: Instant = Instant.now(),
 
-  @field:Schema(description = "Time of the next repayment")
+  @field:Schema(description = "Date of the next due repayment")
   val nextPaymentDate: LocalDate?,
 )

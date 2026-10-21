@@ -14,6 +14,6 @@ class AccountAdvanceBalanceResponse(
   @field:Schema(description = "Combined maximum weekly payment amount of all advances on the account in pence")
   val weeklyPaymentAmount: Long,
 
-  @field:Schema(description = "Date of the next balance calculation")
+  @field:Schema(description = "Time of the balance calculation")
   balanceDateTime: Instant = Instant.now(),
 )

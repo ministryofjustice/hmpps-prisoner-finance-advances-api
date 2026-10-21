@@ -16,6 +16,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.argThat
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
+import org.mockito.kotlin.mock
 import org.mockito.kotlin.times
 import org.mockito.kotlin.whenever
 import org.mockito.stubbing.Answer
@@ -1150,6 +1151,8 @@ class AdvanceRecordServiceTest {
         createdBy = "TEST",
       )
 
+      whenever { advanceRecordRepository.getAdvanceRecordEntityById(advanceId) }.thenReturn(mock())
+
       whenever(
         advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordIdAndPrisonerPostingType(
           advanceRecordId = eq(advanceEntity.id),
@@ -1175,6 +1178,22 @@ class AdvanceRecordServiceTest {
 
       assertThat(pageReq.pageNumber).isEqualTo(0) // zero indexed
       assertThat(pageReq.pageSize).isEqualTo(25)
+    }
+
+    @Test
+    fun `should throw 404 error when advanceRecord does not exist`() {
+      val advanceId = UUID.randomUUID()
+      whenever { advanceRecordRepository.getAdvanceRecordEntityById(advanceId) }.thenReturn(null)
+
+      val error = assertThrows<CustomException> {
+        advanceRecordService.getPrisonerRepayments(
+          advanceId = advanceId,
+          pageNumber = 1,
+          pageSize = 25,
+        )
+      }
+
+      assertThat(error.status).isEqualTo(HttpStatus.NOT_FOUND)
     }
   }
 }

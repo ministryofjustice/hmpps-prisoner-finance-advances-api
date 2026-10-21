@@ -240,7 +240,21 @@ class GetAdvancesTest : IntegrationTestBase() {
 
     @Test
     fun `should get no repayments for advance when there are none`() {
-      val response = webTestClient.get().uri("/advances/${UUID.randomUUID()}/repayments")
+      advance = integrationTestHelpers.createAdvance(
+        prisonNumber = prisonNumber,
+        legacyPaymentProfileId = 123,
+        legacyInformationNumber = "3333",
+        amount = 100,
+        prisonId = prisonId,
+        repaymentAmount = 5,
+        status = AdvanceStatus.ACTIVE,
+        prisonerSubAccountId = prisonerSubAccountId,
+        prisonSubAccountId = prisonSubAccountId,
+        prisonParentAccountId = prisonParentAccountId,
+        prisonerParentAccountId = prisonerParentAccountId,
+      )
+
+      val response = webTestClient.get().uri("/advances/${advance.id}/repayments")
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
         .exchange()
         .expectStatus()
@@ -360,6 +374,16 @@ class GetAdvancesTest : IntegrationTestBase() {
         .exchange()
         .expectStatus()
         .isForbidden
+    }
+
+    @Test
+    fun `should return 404 when the advance does not exist`() {
+      webTestClient.get().uri("/advances/${UUID.randomUUID()}/repayments")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .exchange()
+        .expectStatus()
+        .isNotFound
+        .expectBody<ErrorResponse>()
     }
   }
 }

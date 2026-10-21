@@ -309,7 +309,6 @@ class RecordService(
 
   fun getPrisonerRepayments(advanceId: UUID, pageNumber: Int, pageSize: Int): PagedResponse<AdvancePrisonerRepaymentResponse> {
     val zeroIndexedPage: Int = pageNumber - 1
-
     val pagedRequest = PageRequest.of(
       zeroIndexedPage,
       pageSize,
@@ -318,6 +317,8 @@ class RecordService(
         Sort.Order.desc("id"),
       ),
     )
+
+    advanceRecordRepository.getAdvanceRecordEntityById(advanceId) ?: throw CustomException("No record found with id $advanceId", HttpStatus.NOT_FOUND)
 
     val result = advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordIdAndPrisonerPostingType(
       advanceRecordId = advanceId,

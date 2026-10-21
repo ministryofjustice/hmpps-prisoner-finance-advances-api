@@ -1224,7 +1224,7 @@ class AdvanceRecordServiceTest {
 
       whenever(
         advanceWriteOffRepository.findByAdvanceRecordId(
-          eq(advanceEntity.id),
+          advanceEntity.id,
         ),
       ).thenReturn(emptyList())
 

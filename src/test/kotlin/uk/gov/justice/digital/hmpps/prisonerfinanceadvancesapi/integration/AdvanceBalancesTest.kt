@@ -204,6 +204,7 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(advanceBalanceResponse.advanceAmount).isEqualTo(advanceResponse.amount)
       assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(0)
       assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(advanceResponse.repaymentAmount)
+      assertThat(advanceBalanceResponse.nextPaymentDate).isNull()
     }
 
     @Test
@@ -220,6 +221,8 @@ class AdvanceBalancesTest : IntegrationTestBase() {
         prisonSubAccountId = prisonSubAccountId,
         prisonParentAccountId = prisonParentAccountId,
         prisonerParentAccountId = prisonerParentAccountId,
+        createdOn = advanceCreatedDate,
+        repaymentStartDate = advanceCreatedDate,
       )
 
       integrationTestHelpers.writeOffAdvance(
@@ -240,6 +243,8 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(advanceBalanceResponse.advanceAmount).isEqualTo(advanceResponse.amount)
       assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(9)
       assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(advanceResponse.repaymentAmount)
+      assertThat(advanceBalanceResponse.nextPaymentDate).isEqualTo(expectedNextPaymentDate)
+
     }
 
     @Test
@@ -256,6 +261,8 @@ class AdvanceBalancesTest : IntegrationTestBase() {
         prisonSubAccountId = prisonSubAccountId,
         prisonParentAccountId = prisonParentAccountId,
         prisonerParentAccountId = prisonerParentAccountId,
+        createdOn = advanceCreatedDate,
+        repaymentStartDate = advanceCreatedDate,
       )
 
       integrationTestHelpers.repayAdvance(
@@ -283,7 +290,7 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(advanceBalanceResponse.advanceAmount).isEqualTo(advanceResponse.amount)
       assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(17)
       assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(advanceResponse.repaymentAmount)
-      assertThat(advanceBalanceResponse.nextPaymentDate).isNull()
+      assertThat(advanceBalanceResponse.nextPaymentDate).isEqualTo(expectedNextPaymentDate)
     }
 
     @Test

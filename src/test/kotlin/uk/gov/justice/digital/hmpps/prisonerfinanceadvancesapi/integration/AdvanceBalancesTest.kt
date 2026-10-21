@@ -244,7 +244,6 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(9)
       assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(advanceResponse.repaymentAmount)
       assertThat(advanceBalanceResponse.nextPaymentDate).isEqualTo(expectedNextPaymentDate)
-
     }
 
     @Test

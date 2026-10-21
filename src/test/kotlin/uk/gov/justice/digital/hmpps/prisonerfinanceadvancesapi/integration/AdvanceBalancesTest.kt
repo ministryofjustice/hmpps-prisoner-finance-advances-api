@@ -15,6 +15,9 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 class AdvanceBalancesTest : IntegrationTestBase() {
@@ -29,6 +32,8 @@ class AdvanceBalancesTest : IntegrationTestBase() {
     val prisonSubAccountId = UUID.randomUUID()
     val prisonerSubAccountId = UUID.randomUUID()
     lateinit var advanceBalanceResponse: AdvanceBalanceResponse
+    val advanceCreatedDate = LocalDate.parse("20/10/2026", DateTimeFormatter.ofPattern("dd/MM/yyyy")).atStartOfDay(ZoneId.of("Europe/London")).toInstant()
+    val expectedNextPaymentDate = LocalDate.parse("27/10/2026", DateTimeFormatter.ofPattern("dd/MM/yyyy"))
 
     @BeforeEach
     fun clearDB() {
@@ -54,6 +59,8 @@ class AdvanceBalancesTest : IntegrationTestBase() {
         prisonSubAccountId = prisonSubAccountId,
         prisonParentAccountId = prisonParentAccountId,
         prisonerParentAccountId = prisonerParentAccountId,
+        createdOn = advanceCreatedDate,
+        repaymentStartDate = advanceCreatedDate,
       )
 
       repeat(numOfRepayments) {
@@ -78,6 +85,7 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(advanceBalanceResponse.advanceAmount).isEqualTo(advanceAmount)
       assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(13)
       assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(repaymentAmount)
+      assertThat(advanceBalanceResponse.nextPaymentDate).isEqualTo(expectedNextPaymentDate)
     }
 
     @Test
@@ -96,6 +104,8 @@ class AdvanceBalancesTest : IntegrationTestBase() {
         prisonSubAccountId = prisonSubAccountId,
         prisonParentAccountId = prisonParentAccountId,
         prisonerParentAccountId = prisonerParentAccountId,
+        createdOn = advanceCreatedDate,
+        repaymentStartDate = advanceCreatedDate,
       )
 
       advanceBalanceResponse = webTestClient.get().uri("/advances/${advanceResponse.id}/balance")
@@ -111,6 +121,7 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(advanceBalanceResponse.advanceAmount).isEqualTo(advanceAmount)
       assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(20)
       assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(repaymentAmount)
+      assertThat(advanceBalanceResponse.nextPaymentDate).isEqualTo(expectedNextPaymentDate)
     }
 
     @Test
@@ -130,6 +141,8 @@ class AdvanceBalancesTest : IntegrationTestBase() {
         prisonSubAccountId = prisonSubAccountId,
         prisonParentAccountId = prisonParentAccountId,
         prisonerParentAccountId = prisonerParentAccountId,
+        createdOn = advanceCreatedDate,
+        repaymentStartDate = advanceCreatedDate,
       )
 
       repeat(numOfRepayments) {
@@ -154,6 +167,7 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(advanceBalanceResponse.advanceAmount).isEqualTo(advanceAmount)
       assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(0)
       assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(repaymentAmount)
+      assertThat(advanceBalanceResponse.nextPaymentDate).isNull()
     }
 
     @Test
@@ -269,6 +283,7 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(advanceBalanceResponse.advanceAmount).isEqualTo(advanceResponse.amount)
       assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(17)
       assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(advanceResponse.repaymentAmount)
+      assertThat(advanceBalanceResponse.nextPaymentDate).isNull()
     }
 
     @Test

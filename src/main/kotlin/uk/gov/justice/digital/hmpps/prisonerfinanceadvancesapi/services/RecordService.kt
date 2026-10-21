@@ -27,7 +27,11 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.Adva
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceWriteOffRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.utils.toPageResponse
+import java.time.DayOfWeek
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.temporal.TemporalAdjusters
 import java.util.UUID
 
 @Service
@@ -197,6 +201,13 @@ class RecordService(
     return payments - writeOffs
   }
 
+  private val ukZone: ZoneId = ZoneId.of("Europe/London")
+  private fun getNextRepaymentDay(repaymentStartDate: Instant): LocalDate {
+    val localDate: LocalDate = repaymentStartDate.atZone(ukZone).toLocalDate()
+    val dayOfWeek: DayOfWeek = localDate.dayOfWeek
+    return localDate.with(TemporalAdjusters.next(dayOfWeek))
+  }
+
   fun getAdvanceBalance(advanceId: UUID): AdvanceBalanceResponse {
     val advance = advanceRecordRepository.getAdvanceRecordEntityById(advanceId)
       ?: throw CustomException("Advance record not found", HttpStatus.NOT_FOUND)
@@ -207,16 +218,19 @@ class RecordService(
         balanceOutstanding = 0,
         weeklyPaymentAmount = advance.repaymentAmount,
         remainingPayments = 0,
+        nextPaymentDate = null,
       )
     }
 
     val outstandingBalance = calculateAdvanceBalance(advance)
+    val nextPaymentDate = getNextRepaymentDay(advance.repaymentStartDate)
 
     return AdvanceBalanceResponse(
       advanceAmount = advance.amount,
       balanceOutstanding = outstandingBalance,
       weeklyPaymentAmount = advance.repaymentAmount,
       remainingPayments = Math.ceilDiv(outstandingBalance, advance.repaymentAmount),
+      nextPaymentDate = nextPaymentDate,
     )
   }
 

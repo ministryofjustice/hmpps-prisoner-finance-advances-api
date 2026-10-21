@@ -105,6 +105,8 @@ class IntegrationTestHelpers(
     prisonSubAccountId: UUID,
     prisonParentAccountId: UUID,
     prisonerParentAccountId: UUID,
+    createdOn: Instant = Instant.now(),
+    repaymentStartDate: Instant = Instant.now(),
   ): AdvanceRecordResponse {
     val advanceRecordRequest = CreateAdvanceRecordRequest(
       legacyPaymentProfileId = legacyPaymentProfileId,
@@ -112,8 +114,8 @@ class IntegrationTestHelpers(
       prisonNumber = prisonNumber,
       prisonID = prisonId,
       amount = amount,
-      createdOn = Instant.now(),
-      repaymentStartDate = Instant.now(),
+      createdOn = createdOn,
+      repaymentStartDate = repaymentStartDate,
       repaymentAmount = repaymentAmount,
       reference = "REF",
       createdBy = "USER",

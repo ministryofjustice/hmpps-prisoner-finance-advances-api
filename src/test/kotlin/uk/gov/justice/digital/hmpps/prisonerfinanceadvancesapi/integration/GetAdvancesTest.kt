@@ -153,7 +153,7 @@ class GetAdvancesTest : IntegrationTestBase() {
         )
       }
 
-      val responseBody = webTestClient.get().uri("/advances/$prisonNumber?pageNumber=3")
+      val responseBody = webTestClient.get().uri("/advances/$prisonNumber?pageNumber=2&pageSize=25")
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
         .exchange()
         .expectStatus()

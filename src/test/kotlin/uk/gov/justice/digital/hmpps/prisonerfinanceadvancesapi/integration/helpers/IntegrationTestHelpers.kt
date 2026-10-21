@@ -14,12 +14,14 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wirem
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.GeneralLedgerApiExtension.Companion.generalLedgerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceWriteOffRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRepaymentRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRepaymentResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvancePaymentRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceWriteOffRepository
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 import java.time.Instant
 import java.util.UUID
@@ -31,6 +33,7 @@ class IntegrationTestHelpers(
   @Autowired
   private val advanceRecordRepository: AdvanceRecordRepository,
   private val advancePaymentRepository: AdvancePaymentRepository,
+  private val advanceWriteOffRepository: AdvanceWriteOffRepository,
   private val jwtAuthHelper: JwtAuthorisationHelper,
 ) {
 
@@ -70,6 +73,24 @@ class IntegrationTestHelpers(
       subAccountID = prisonerSubAccountId,
       parentAccountId = prisonerParentAccountId,
     )
+  }
+
+  fun writeOffAdvance(advanceId: UUID, amount: Long) {
+    val advanceWriteOffRequest = AdvanceWriteOffRequest(
+      writeOffDateTime = Instant.now(),
+      writtenOffBy = "TEST",
+      writtenOffAmount = amount,
+    )
+
+    webTestClient.post().uri("/advances/$advanceId/write-off")
+      .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+      .bodyValue(advanceWriteOffRequest)
+      .exchange()
+      .expectStatus()
+      .isCreated
+      .expectBody<AdvanceRecordResponse>()
+      .returnResult()
+      .responseBody!!
   }
 
   fun createAdvance(
@@ -169,6 +190,7 @@ class IntegrationTestHelpers(
   fun clearDB() {
     entityManager.clear()
     entityManager.flush()
+    advanceWriteOffRepository.deleteAll()
     advancePaymentRepository.deleteAll()
     advanceRecordRepository.deleteAll()
   }

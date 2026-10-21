@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config
 
 import jakarta.validation.ValidationException
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatus.BAD_REQUEST
 import org.springframework.http.HttpStatus.FORBIDDEN
 import org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR
@@ -9,6 +10,8 @@ import org.springframework.http.HttpStatus.NOT_FOUND
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.security.access.AccessDeniedException
+import org.springframework.web.HttpMediaTypeNotSupportedException
+import org.springframework.web.HttpRequestMethodNotSupportedException
 import org.springframework.web.bind.MissingRequestHeaderException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -20,6 +23,17 @@ import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
 @RestControllerAdvice
 class PrisonerFinanceAdvancesApiExceptionHandler {
+
+  @ExceptionHandler(value = [HttpMediaTypeNotSupportedException::class])
+  fun handleMissingHeaderException(e: HttpMediaTypeNotSupportedException): ResponseEntity<ErrorResponse> = ResponseEntity
+    .status(BAD_REQUEST)
+    .body(
+      ErrorResponse(
+        status = BAD_REQUEST,
+        userMessage = "Incorrect or missing media type '${e.cause?.message}'",
+        developerMessage = e.message,
+      ),
+    ).also { log.info("Incorrect or missing media type '${e.cause?.message}'") }
 
   @ExceptionHandler(value = [MissingRequestHeaderException::class])
   fun handleMissingHeaderException(e: MissingRequestHeaderException): ResponseEntity<ErrorResponse> = ResponseEntity
@@ -127,6 +141,17 @@ class PrisonerFinanceAdvancesApiExceptionHandler {
         developerMessage = e.message,
       ),
     ).also { log.error("Unexpected exception", e) }
+
+  @ExceptionHandler(HttpRequestMethodNotSupportedException::class)
+  fun handleMethodNotAllowedException(e: HttpRequestMethodNotSupportedException): ResponseEntity<ErrorResponse> = ResponseEntity
+    .status(HttpStatus.METHOD_NOT_ALLOWED)
+    .body(
+      ErrorResponse(
+        status = HttpStatus.METHOD_NOT_ALLOWED,
+        userMessage = "HTTP method ${e.method} is not supported for this endpoint.",
+        developerMessage = e.message,
+      ),
+    ).also { log.error("Endpoint called with the wrong method exception", e) }
 
   private companion object {
     private val log = LoggerFactory.getLogger(this::class.java)

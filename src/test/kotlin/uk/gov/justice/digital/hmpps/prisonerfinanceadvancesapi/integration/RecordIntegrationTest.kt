@@ -7,6 +7,8 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RO
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RW
@@ -16,6 +18,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wirem
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.ErrorResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceWriteOffRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import wiremock.org.eclipse.jetty.http.HttpStatus
@@ -248,6 +251,297 @@ class RecordIntegrationTest : IntegrationTestBase() {
         .expectBody<ErrorResponse>()
 
       generalLedgerApi.verify(1, postRequestedFor(urlPathMatching("/transactions")))
+    }
+  }
+
+  @Nested
+  inner class WriteOffAdvance {
+
+    val prisonNumber = "A1234AA"
+    val prisonId = "LEI"
+    val prisonerSubAccountId: UUID = UUID.randomUUID()
+    val prisonSubAccountId: UUID = UUID.randomUUID()
+    val prisonParentAccountId: UUID = UUID.randomUUID()
+    val prisonerParentAccountId: UUID = UUID.randomUUID()
+
+    @Test
+    fun `should return 201 when an advance has been successfully written off`() {
+      val advanceCreated = integrationTestHelpers.createAdvance(
+        prisonNumber = prisonNumber,
+        legacyPaymentProfileId = 123,
+        legacyInformationNumber = "1234",
+        amount = 10,
+        prisonId = prisonId,
+        repaymentAmount = 5,
+        status = AdvanceStatus.ACTIVE,
+        prisonerSubAccountId = prisonerSubAccountId,
+        prisonSubAccountId = prisonSubAccountId,
+        prisonParentAccountId = prisonParentAccountId,
+        prisonerParentAccountId = prisonerParentAccountId,
+      )
+
+      val advanceWriteOffRequest = AdvanceWriteOffRequest(
+        writeOffDateTime = Instant.now(),
+        writtenOffBy = "TEST",
+        writtenOffAmount = 10L,
+      )
+
+      val response = webTestClient.post().uri("/advances/${advanceCreated.id}/write-off")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .bodyValue(advanceWriteOffRequest)
+        .exchange()
+        .expectStatus()
+        .isCreated
+        .expectBody<AdvanceRecordResponse>()
+        .returnResult()
+        .responseBody!!
+
+      assertThat(response.status).isEqualTo(AdvanceStatus.WRITTEN_OFF)
+      assertThat(response.id).isEqualTo(advanceCreated.id)
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+      "REPAID",
+      "WRITTEN_OFF",
+    )
+    fun `should return 400 if the advance is written off already`(advanceStatus: AdvanceStatus) {
+      val advanceCreated = integrationTestHelpers.createAdvance(
+        prisonNumber = prisonNumber,
+        legacyPaymentProfileId = 123,
+        legacyInformationNumber = "1234",
+        amount = 10,
+        prisonId = prisonId,
+        repaymentAmount = 5,
+        status = advanceStatus,
+        prisonerSubAccountId = prisonerSubAccountId,
+        prisonSubAccountId = prisonSubAccountId,
+        prisonParentAccountId = prisonParentAccountId,
+        prisonerParentAccountId = prisonerParentAccountId,
+      )
+
+      val advanceWriteOffRequest = AdvanceWriteOffRequest(
+        writeOffDateTime = Instant.now(),
+        writtenOffBy = "TEST",
+        writtenOffAmount = 10L,
+      )
+
+      val error = webTestClient.post().uri("/advances/${advanceCreated.id}/write-off")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .header("Content-Type", "application/json")
+        .bodyValue(advanceWriteOffRequest)
+        .exchange()
+        .expectStatus()
+        .isBadRequest
+        .expectBody<ErrorResponse>()
+        .returnResult()
+        .responseBody!!
+
+      assertThat(error.status).isEqualTo(400)
+      assertThat(error.userMessage).isEqualTo("Cannot write off an advance record that is not active")
+    }
+
+    @Test
+    fun `should return 400 if the id is invalid`() {
+      val advanceWriteOffRequest = AdvanceWriteOffRequest(
+        writeOffDateTime = Instant.now(),
+        writtenOffBy = "TEST",
+        writtenOffAmount = 10L,
+      )
+
+      val error = webTestClient.post().uri("/advances/INVALID/write-off")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .header("Content-Type", "application/json")
+        .bodyValue(advanceWriteOffRequest)
+        .exchange()
+        .expectStatus()
+        .isBadRequest
+        .expectBody<ErrorResponse>()
+        .returnResult()
+        .responseBody!!
+
+      assertThat(error.status).isEqualTo(400)
+      assertThat(error.userMessage).isEqualTo("Parameter 'advanceId' must be of type UUID")
+    }
+
+    @Test
+    fun `should return 400 if the body is invalid`() {
+      val error = webTestClient.post().uri("/advances/${UUID.randomUUID()}/write-off")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .header("Content-Type", "application/json")
+        .bodyValue("{\"hello\": \"world\"}")
+        .exchange()
+        .expectStatus()
+        .isBadRequest
+        .expectBody<ErrorResponse>()
+        .returnResult()
+        .responseBody!!
+
+      assertThat(error.status).isEqualTo(400)
+      assertThat(error.userMessage).contains("Validation failure: JSON parse error")
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+      "INVALID_ROLE",
+      ROLE_PRISONER_FINANCE__ADVANCES__RO,
+    )
+    fun `should return 403 forbidden when using the incorrect role`(role: String) {
+      val advanceWriteOffRequest = AdvanceWriteOffRequest(
+        writeOffDateTime = Instant.now(),
+        writtenOffBy = "TEST",
+        writtenOffAmount = 10L,
+      )
+      webTestClient.post().uri("/advances/${UUID.randomUUID()}/write-off")
+        .headers(setAuthorisation(roles = listOf(role)))
+        .header("Content-Type", "application/json")
+        .bodyValue(advanceWriteOffRequest)
+        .exchange()
+        .expectStatus().isForbidden
+    }
+
+    @Test
+    fun `should return 404 when the advance does not exist`() {
+      val advanceWriteOffRequest = AdvanceWriteOffRequest(
+        writeOffDateTime = Instant.now(),
+        writtenOffBy = "TEST",
+        writtenOffAmount = 10L,
+      )
+      val response = webTestClient.post().uri("/advances/${UUID.randomUUID()}/write-off")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .header("Content-Type", "application/json")
+        .bodyValue(advanceWriteOffRequest)
+        .exchange()
+        .expectStatus().isNotFound
+        .expectBody<ErrorResponse>()
+        .returnResult()
+        .responseBody!!
+
+      assertThat(response.status).isEqualTo(404)
+      assertThat(response.userMessage).isEqualTo("Advance record not found")
+    }
+
+    @Test
+    fun `Should return 400 when the write off amount is greater then the outstanding balance`() {
+      val advanceCreated = integrationTestHelpers.createAdvance(
+        prisonNumber = prisonNumber,
+        legacyPaymentProfileId = 123,
+        legacyInformationNumber = "1234",
+        amount = 10,
+        prisonId = prisonId,
+        repaymentAmount = 5,
+        status = AdvanceStatus.ACTIVE,
+        prisonerSubAccountId = prisonerSubAccountId,
+        prisonSubAccountId = prisonSubAccountId,
+        prisonParentAccountId = prisonParentAccountId,
+        prisonerParentAccountId = prisonerParentAccountId,
+      )
+
+      val advanceWriteOffRequest = AdvanceWriteOffRequest(
+        writeOffDateTime = Instant.now(),
+        writtenOffBy = "TEST",
+        writtenOffAmount = 11L,
+      )
+
+      val response = webTestClient.post().uri("/advances/${advanceCreated.id}/write-off")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .bodyValue(advanceWriteOffRequest)
+        .exchange()
+        .expectStatus()
+        .isBadRequest
+        .expectBody<ErrorResponse>()
+        .returnResult()
+        .responseBody!!
+
+      assertThat(response.userMessage).isEqualTo("Write off amount should be less then or equal to the outstanding balance")
+    }
+
+    @Test
+    fun `Should return 201 when the write off amount is less then the outstanding balance`() {
+      val advanceCreated = integrationTestHelpers.createAdvance(
+        prisonNumber = prisonNumber,
+        legacyPaymentProfileId = 123,
+        legacyInformationNumber = "1234",
+        amount = 10,
+        prisonId = prisonId,
+        repaymentAmount = 5,
+        status = AdvanceStatus.ACTIVE,
+        prisonerSubAccountId = prisonerSubAccountId,
+        prisonSubAccountId = prisonSubAccountId,
+        prisonParentAccountId = prisonParentAccountId,
+        prisonerParentAccountId = prisonerParentAccountId,
+      )
+
+      val advanceWriteOffRequest = AdvanceWriteOffRequest(
+        writeOffDateTime = Instant.now(),
+        writtenOffBy = "TEST",
+        writtenOffAmount = 2L,
+      )
+
+      val response = webTestClient.post().uri("/advances/${advanceCreated.id}/write-off")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .bodyValue(advanceWriteOffRequest)
+        .exchange()
+        .expectStatus()
+        .isCreated
+        .expectBody<AdvanceRecordResponse>()
+        .returnResult()
+        .responseBody!!
+
+      assertThat(response.status).isEqualTo(AdvanceStatus.ACTIVE)
+    }
+
+    @Test
+    fun `Should post multiple partial write-off to an advance`() {
+      val advanceCreated = integrationTestHelpers.createAdvance(
+        prisonNumber = prisonNumber,
+        legacyPaymentProfileId = 123,
+        legacyInformationNumber = "1234",
+        amount = 10,
+        prisonId = prisonId,
+        repaymentAmount = 5,
+        status = AdvanceStatus.ACTIVE,
+        prisonerSubAccountId = prisonerSubAccountId,
+        prisonSubAccountId = prisonSubAccountId,
+        prisonParentAccountId = prisonParentAccountId,
+        prisonerParentAccountId = prisonerParentAccountId,
+      )
+
+      val advanceWriteOffRequestOne = AdvanceWriteOffRequest(
+        writeOffDateTime = Instant.now(),
+        writtenOffBy = "TEST",
+        writtenOffAmount = 2,
+      )
+
+      val responseOne = webTestClient.post().uri("/advances/${advanceCreated.id}/write-off")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .bodyValue(advanceWriteOffRequestOne)
+        .exchange()
+        .expectStatus()
+        .isCreated
+        .expectBody<AdvanceRecordResponse>()
+        .returnResult()
+        .responseBody!!
+
+      assertThat(responseOne.status).isEqualTo(AdvanceStatus.ACTIVE)
+
+      val advanceWriteOffRequestTwo = AdvanceWriteOffRequest(
+        writeOffDateTime = Instant.now(),
+        writtenOffBy = "TEST",
+        writtenOffAmount = 8,
+      )
+
+      val responseTwo = webTestClient.post().uri("/advances/${advanceCreated.id}/write-off")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .bodyValue(advanceWriteOffRequestTwo)
+        .exchange()
+        .expectStatus()
+        .isCreated
+        .expectBody<AdvanceRecordResponse>()
+        .returnResult()
+        .responseBody!!
+
+      assertThat(responseTwo.status).isEqualTo(AdvanceStatus.WRITTEN_OFF)
     }
   }
 }

@@ -10,13 +10,16 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.mockito.Mock
+import org.mockito.Mockito.lenient
+import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.KArgumentCaptor
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argThat
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.whenever
 import org.mockito.stubbing.Answer
@@ -29,15 +32,18 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.exceptions.Custom
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.PostingType
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvancePaymentEntity
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceRecordEntity
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceWriteOffEntity
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreatePostingRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreateTransactionRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceWriteOffRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRepaymentRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRepaymentResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvancePaymentRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceWriteOffRepository
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -51,6 +57,9 @@ class AdvanceRecordServiceTest {
 
   @Mock
   lateinit var advancePaymentRepository: AdvancePaymentRepository
+
+  @Mock
+  lateinit var advanceWriteOffRepository: AdvanceWriteOffRepository
 
   @Mock
   lateinit var generalLedgerApiClient: GeneralLedgerApiClient
@@ -68,32 +77,14 @@ class AdvanceRecordServiceTest {
       insertService = InsertService(advanceRecordRepository, advancePaymentRepository),
       generalLedgerApiClient = generalLedgerApiClient,
       accountResolver = accountResolver,
+      advanceWriteOffRepository = advanceWriteOffRepository,
     )
   }
 
-  val advanceRepaymentRequest = CreateAdvanceRepaymentRequest(
-    amount = 11,
-    legacyTransactionId = 123,
-    createdAt = Instant.now(),
-    createdBy = "TEST",
-    description = "Test description",
-    entrySequence = 2,
-  )
   val prisonID = "LEI"
   val prisonNumber = "A123DX"
   val advanceAmount = 10000L
   val advanceId = UUID.randomUUID()
-  val idempotency = UUID.randomUUID()
-  val transactionToGl = argumentCaptor<CreateTransactionRequest>()
-  val savedPaymentEntity = argumentCaptor<AdvancePaymentEntity>()
-  val savedAdvanceEntity = argumentCaptor<AdvanceRecordEntity>()
-
-  val glTransactionId = UUID.randomUUID()
-  val prisonSubAccount = UUID.randomUUID()
-  val prisonerSubAccount = UUID.randomUUID()
-
-  lateinit var advanceRepaymentResponse: AdvanceRepaymentResponse
-
   val advanceEntityTime = Instant.now()
   val advanceEntity = AdvanceRecordEntity(
     id = advanceId,
@@ -110,15 +101,6 @@ class AdvanceRecordServiceTest {
     createdBy = "TEST",
     status = AdvanceStatus.ACTIVE,
     updatedAt = null,
-  )
-
-  val advancePaymentToPrisonerEntity = AdvancePaymentEntity(
-    advanceRecord = advanceEntity,
-    transactionId = UUID.randomUUID(),
-    prisonerPostingType = PostingType.CR,
-    amount = advanceAmount,
-    timestamp = Instant.now(),
-    createdBy = "TEST",
   )
 
   @Nested
@@ -951,6 +933,73 @@ class AdvanceRecordServiceTest {
 
       assertThat(accountBalance).isEqualTo(0)
     }
+
+    @Test
+    fun `should calculate the advance balance where there are write-offs`() {
+      val writeOffOne = AdvanceWriteOffEntity(
+        advanceRecordId = advanceEntity.id,
+        amount = 20,
+        createdBy = "TEST",
+        createdAt = Instant.now(),
+      )
+
+      val writeOffTwo = AdvanceWriteOffEntity(
+        advanceRecordId = advanceEntity.id,
+        amount = 20,
+        createdBy = "TEST",
+        createdAt = Instant.now(),
+      )
+
+      whenever(
+        advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(listOf(advancePaymentCreditToPrisoner))
+
+      whenever(
+        advanceWriteOffRepository.findByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(listOf(writeOffOne, writeOffTwo))
+
+      val accountBalance = advanceRecordService.calculateAdvanceBalance(advanceEntity)
+
+      assertThat(accountBalance).isEqualTo(60)
+    }
+
+    @Test
+    fun `should calculate the advance balance where there are write-offs and repayments`() {
+      val advancePaymentDebitToPrisoner = AdvancePaymentEntity(
+        advanceRecord = advanceEntity,
+        transactionId = UUID.randomUUID(),
+        prisonerPostingType = PostingType.DR,
+        amount = 5,
+        timestamp = Instant.now(),
+        createdBy = "TEST",
+      )
+
+      val writeOffOne = AdvanceWriteOffEntity(
+        advanceRecordId = advanceEntity.id,
+        amount = 20,
+        createdBy = "TEST",
+        createdAt = Instant.now(),
+      )
+
+      val writeOffTwo = AdvanceWriteOffEntity(
+        advanceRecordId = advanceEntity.id,
+        amount = 20,
+        createdBy = "TEST",
+        createdAt = Instant.now(),
+      )
+
+      whenever(
+        advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(listOf(advancePaymentCreditToPrisoner, advancePaymentDebitToPrisoner))
+
+      whenever(
+        advanceWriteOffRepository.findByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(listOf(writeOffOne, writeOffTwo))
+
+      val accountBalance = advanceRecordService.calculateAdvanceBalance(advanceEntity)
+
+      assertThat(accountBalance).isEqualTo(55)
+    }
   }
 
   @Nested
@@ -1132,6 +1181,264 @@ class AdvanceRecordServiceTest {
       assertThat(balance.advanceAmount).isEqualTo(inactiveAdvance.amount)
       assertThat(balance.weeklyPaymentAmount).isEqualTo(inactiveAdvance.repaymentAmount)
       assertThat(balance.remainingPayments).isEqualTo(0)
+    }
+  }
+
+  @Nested
+  inner class WriteOffAdvanceFully {
+
+    val advanceWriteOffRequest = AdvanceWriteOffRequest(
+      writeOffDateTime = Instant.now(),
+      writtenOffBy = "TEST",
+      writtenOffAmount = advanceEntity.amount,
+    )
+
+    val advanceId = UUID.randomUUID()
+
+    var writeOffAdvanceRecordResponse: AdvanceRecordResponse? = null
+
+    var writeOffEntityCaptor: KArgumentCaptor<AdvanceWriteOffEntity> = argumentCaptor<AdvanceWriteOffEntity>()
+
+    @BeforeEach
+    fun setup() {
+      whenever { advanceRecordRepository.getAdvanceRecordEntityById(advanceId) }.thenReturn(
+        advanceEntity,
+      )
+
+      whenever(advanceRecordRepository.save(any<AdvanceRecordEntity>())).thenAnswer { it.arguments[0] }
+
+      whenever(advanceWriteOffRepository.save(writeOffEntityCaptor.capture())).thenAnswer { it.arguments[0] }
+
+      val advancePaymentCreditToPrisoner = AdvancePaymentEntity(
+        advanceRecord = advanceEntity,
+        transactionId = UUID.randomUUID(),
+        prisonerPostingType = PostingType.CR,
+        amount = advanceEntity.amount,
+        timestamp = Instant.now(),
+        createdBy = "TEST",
+      )
+
+      whenever(
+        advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(listOf(advancePaymentCreditToPrisoner))
+
+      whenever(
+        advanceWriteOffRepository.findByAdvanceRecordId(
+          advanceEntity.id,
+        ),
+      ).thenReturn(emptyList())
+
+      writeOffAdvanceRecordResponse = advanceRecordService.writeOffAdvance(advanceId, advanceWriteOffRequest)
+    }
+
+    @Test
+    fun `Should write-off advance`() {
+      assertThat(writeOffAdvanceRecordResponse?.status).isEqualTo(AdvanceStatus.WRITTEN_OFF)
+    }
+
+    @Test
+    fun `Should store writeOff entity `() {
+      verify(advanceWriteOffRepository, times(1)).save(any<AdvanceWriteOffEntity>())
+
+      val writeOffEntity = writeOffEntityCaptor.firstValue
+      assertThat(writeOffEntity.amount).isEqualTo(advanceWriteOffRequest.writtenOffAmount)
+      assertThat(writeOffEntity.createdBy).isEqualTo(advanceWriteOffRequest.writtenOffBy)
+      assertThat(writeOffEntity.createdAt).isEqualTo(advanceWriteOffRequest.writeOffDateTime)
+    }
+  }
+
+  @Nested
+  inner class WriteOffAdvanceWithRepayments {
+    val advanceId: UUID = UUID.randomUUID()
+
+    var writeOffResponse: AdvanceRecordResponse? = null
+
+    var writeOffEntityCaptor: KArgumentCaptor<AdvanceWriteOffEntity> = argumentCaptor<AdvanceWriteOffEntity>()
+
+    val advanceRecordCaptor = argumentCaptor<AdvanceRecordEntity>()
+
+    @BeforeEach
+    fun setup() {
+      whenever { advanceRecordRepository.getAdvanceRecordEntityById(advanceId) }.thenReturn(
+        advanceEntity,
+      )
+
+      lenient().whenever(advanceRecordRepository.save(advanceRecordCaptor.capture())).thenAnswer { it.arguments[0] }
+
+      whenever(advanceWriteOffRepository.save(writeOffEntityCaptor.capture())).thenAnswer { it.arguments[0] }
+    }
+
+    @Test
+    fun `Should fully write off an advance that has some repayments`() {
+      val advancePaymentCreditToPrisoner = AdvancePaymentEntity(
+        advanceRecord = advanceEntity,
+        transactionId = UUID.randomUUID(),
+        prisonerPostingType = PostingType.CR,
+        amount = advanceEntity.amount,
+        timestamp = Instant.now(),
+        createdBy = "TEST",
+      )
+
+      val advancePaymentDebitToPrisonerOne = AdvancePaymentEntity(
+        advanceRecord = advanceEntity,
+        transactionId = UUID.randomUUID(),
+        prisonerPostingType = PostingType.DR,
+        amount = 2000,
+        timestamp = Instant.now(),
+        createdBy = "TEST",
+      )
+
+      whenever(advanceWriteOffRepository.findByAdvanceRecordId(advanceEntity.id)).thenReturn(emptyList())
+
+      whenever(
+        advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(listOf(advancePaymentCreditToPrisoner, advancePaymentDebitToPrisonerOne))
+
+      val advanceWriteOffRequest = AdvanceWriteOffRequest(
+        writeOffDateTime = Instant.now(),
+        writtenOffBy = "TEST",
+        writtenOffAmount = 8000,
+      )
+
+      writeOffResponse = advanceRecordService.writeOffAdvance(advanceId, advanceWriteOffRequest)
+
+      val writeOffEntity = writeOffEntityCaptor.firstValue
+      assertThat(writeOffEntity.amount).isEqualTo(advanceWriteOffRequest.writtenOffAmount)
+
+      val updatedEntity = advanceRecordCaptor.firstValue
+      assertThat(updatedEntity.status).isEqualTo(AdvanceStatus.WRITTEN_OFF)
+
+      verify(advanceRecordRepository, times(1)).save(any())
+    }
+
+    @Test
+    fun `Should partially write off an advance`() {
+      whenever(advanceWriteOffRepository.findByAdvanceRecordId(advanceEntity.id)).thenReturn(emptyList())
+
+      val advancePaymentCreditToPrisoner = AdvancePaymentEntity(
+        advanceRecord = advanceEntity,
+        transactionId = UUID.randomUUID(),
+        prisonerPostingType = PostingType.CR,
+        amount = advanceEntity.amount,
+        timestamp = Instant.now(),
+        createdBy = "TEST",
+      )
+
+      whenever(
+        advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(listOf(advancePaymentCreditToPrisoner))
+
+      val advanceWriteOffRequest = AdvanceWriteOffRequest(
+        writeOffDateTime = Instant.now(),
+        writtenOffBy = "TEST",
+        writtenOffAmount = 2000,
+      )
+
+      writeOffResponse = advanceRecordService.writeOffAdvance(advanceId, advanceWriteOffRequest)
+
+      val writeOffEntity = writeOffEntityCaptor.firstValue
+      assertThat(writeOffEntity.amount).isEqualTo(advanceWriteOffRequest.writtenOffAmount)
+
+      verify(advanceRecordRepository, never()).save(any())
+    }
+  }
+
+  @Nested
+  inner class WriteOffThrowsErrorIfInactiveAdvance {
+    val advanceWriteOffRequest = AdvanceWriteOffRequest(
+      writeOffDateTime = Instant.now(),
+      writtenOffBy = "TEST",
+      writtenOffAmount = 10L,
+    )
+
+    @ParameterizedTest(name = "{0}")
+    @CsvSource("REPAID", "WRITTEN_OFF")
+    fun `Should throw a bad request if the advance is`(advanceStatus: AdvanceStatus) {
+      val differentAdvanceStatus = advanceEntity.copy(status = advanceStatus)
+
+      whenever { advanceRecordRepository.getAdvanceRecordEntityById(advanceId) }.thenReturn(
+        differentAdvanceStatus,
+      )
+
+      val errorResponse = assertThrows<CustomException> {
+        advanceRecordService.writeOffAdvance(advanceId, advanceWriteOffRequest)
+      }
+
+      assertThat(errorResponse.status).isEqualTo(HttpStatus.BAD_REQUEST)
+    }
+  }
+
+  @Nested
+  inner class WriteOffThrowsErrorIfAmountWrittenOffIsIncorrect {
+    val advanceWriteOffRequest = AdvanceWriteOffRequest(
+      writeOffDateTime = Instant.now(),
+      writtenOffBy = "TEST",
+      writtenOffAmount = 10L,
+    )
+
+    @Test
+    fun `Should throw a bad request if the amount written off is greater then the advance balance`() {
+      val advancePaymentCreditToPrisoner = AdvancePaymentEntity(
+        advanceRecord = advanceEntity,
+        transactionId = UUID.randomUUID(),
+        prisonerPostingType = PostingType.CR,
+        amount = advanceEntity.amount,
+        timestamp = Instant.now(),
+        createdBy = "TEST",
+      )
+
+      whenever(
+        advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(listOf(advancePaymentCreditToPrisoner))
+
+      val overpaidWriteOffRequest = advanceWriteOffRequest.copy(writtenOffAmount = 10001L)
+
+      whenever { advanceRecordRepository.getAdvanceRecordEntityById(advanceId) }.thenReturn(
+        advanceEntity,
+      )
+
+      val errorResponse = assertThrows<CustomException> {
+        advanceRecordService.writeOffAdvance(advanceId, overpaidWriteOffRequest)
+      }
+
+      assertThat(errorResponse.status).isEqualTo(HttpStatus.BAD_REQUEST)
+    }
+
+    @Test
+    fun `Should throw a bad request if the amount written off is greater then the outstanding balance`() {
+      val advancePaymentCreditToPrisoner = AdvancePaymentEntity(
+        advanceRecord = advanceEntity,
+        transactionId = UUID.randomUUID(),
+        prisonerPostingType = PostingType.CR,
+        amount = advanceEntity.amount,
+        timestamp = Instant.now(),
+        createdBy = "TEST",
+      )
+
+      val advancePaymentDebitToPrisonerOne = AdvancePaymentEntity(
+        advanceRecord = advanceEntity,
+        transactionId = UUID.randomUUID(),
+        prisonerPostingType = PostingType.DR,
+        amount = 8000L,
+        timestamp = Instant.now(),
+        createdBy = "TEST",
+      )
+
+      whenever(
+        advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(listOf(advancePaymentCreditToPrisoner, advancePaymentDebitToPrisonerOne))
+
+      val overpaidWriteOffRequest = advanceWriteOffRequest.copy(writtenOffAmount = 3000L)
+
+      whenever { advanceRecordRepository.getAdvanceRecordEntityById(advanceId) }.thenReturn(
+        advanceEntity,
+      )
+
+      val errorResponse = assertThrows<CustomException> {
+        advanceRecordService.writeOffAdvance(advanceId, overpaidWriteOffRequest)
+      }
+
+      assertThat(errorResponse.status).isEqualTo(HttpStatus.BAD_REQUEST)
     }
   }
 

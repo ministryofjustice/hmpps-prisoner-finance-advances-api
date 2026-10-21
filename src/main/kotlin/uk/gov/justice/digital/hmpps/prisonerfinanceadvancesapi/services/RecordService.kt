@@ -17,6 +17,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.Cr
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRepaymentRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AccountAdvanceBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceBalanceResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvancePrisonerRepaymentResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRepaymentResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.PagedResponse
@@ -135,7 +136,7 @@ class RecordService(
 
     val advanceRecordEntity = createAdvanceRecordRequest.toAdvanceRecordEntity()
     val advancePaymentEntity = AdvancePaymentEntity(
-      advanceRecordId = advanceRecordEntity.id,
+      advanceRecord = advanceRecordEntity,
       transactionId = transactionGLId,
       prisonerPostingType = PostingType.CR,
       amount = advanceRecordEntity.amount,
@@ -268,7 +269,7 @@ class RecordService(
       advancePayment = insertService.saveAdvanceAndPayment(
         advance,
         AdvancePaymentEntity(
-          advanceRecordId = advance.id,
+          advanceRecord = advance,
           transactionId = glTransactionId,
           prisonerPostingType = PostingType.DR,
           amount = repaymentRequest.amount,
@@ -304,5 +305,29 @@ class RecordService(
       balancesOutstanding = totalActiveOutstandingBalance,
       weeklyPaymentAmount = totalActiveWeeklyPaymentAmount,
     )
+  }
+
+  fun getPrisonerRepayments(advanceId: UUID, pageNumber: Int, pageSize: Int): PagedResponse<AdvancePrisonerRepaymentResponse> {
+    val zeroIndexedPage: Int = pageNumber - 1
+    val pagedRequest = PageRequest.of(
+      zeroIndexedPage,
+      pageSize,
+      Sort.by(
+        Sort.Order.desc("timestamp"),
+        Sort.Order.desc("id"),
+      ),
+    )
+
+    advanceRecordRepository.getAdvanceRecordEntityById(advanceId) ?: throw CustomException("No record found with id $advanceId", HttpStatus.NOT_FOUND)
+
+    val result = advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordIdAndPrisonerPostingType(
+      advanceRecordId = advanceId,
+      prisonerPostingType = PostingType.DR,
+      pageable = pagedRequest,
+    )
+
+    return result.toPageResponse { content ->
+      content.map { it.toPrisonerRepaymentResponse() }
+    }
   }
 }

@@ -1,6 +1,8 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses
 
 import io.swagger.v3.oas.annotations.media.Schema
+import java.time.Instant
+import java.time.LocalDate
 
 class AdvanceBalanceResponse(
   @field:Schema(description = "Initial amount of the advance")
@@ -14,4 +16,10 @@ class AdvanceBalanceResponse(
 
   @field:Schema(description = "remaining payments (balanceOutstanding / weeklyPayments) rounded up")
   val remainingPayments: Long,
+
+  @field:Schema(description = "Time of the balance calculation")
+  val balanceDateTime: Instant = Instant.now(),
+
+  @field:Schema(description = "Date of the next due repayment")
+  val nextPaymentDate: LocalDate?,
 )

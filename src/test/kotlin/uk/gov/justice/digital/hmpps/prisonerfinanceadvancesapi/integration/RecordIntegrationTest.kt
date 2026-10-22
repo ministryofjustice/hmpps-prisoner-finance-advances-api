@@ -187,6 +187,52 @@ class RecordIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should return 400 bad request if Idempotency-Key refers to a different payment profile ID`() {
+      val advanceRecordRequest = CreateAdvanceRecordRequest(
+        legacyPaymentProfileId = 1234,
+        legacyInformationNumber = "5678",
+        prisonNumber = prisonNumber,
+        prisonID = prisonId,
+        amount = 10,
+        createdOn = Instant.now(),
+        repaymentStartDate = Instant.now(),
+        repaymentAmount = 1,
+        reference = "REF",
+        createdBy = "USER",
+        status = AdvanceStatus.ACTIVE,
+        legacyTransactionId = 123,
+      )
+
+      generalLedgerApi.stubPostTransaction(
+        creditorSubAccountUuid = prisonerSubAccountId.toString(),
+        debtorSubAccountUuid = prisonSubAccountId.toString(),
+        returnUUID = UUID.randomUUID(),
+        amount = advanceRecordRequest.amount,
+        legacyTransactionId = advanceRecordRequest.legacyTransactionId.toString(),
+      )
+
+      webTestClient.post().uri("/advances")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .headers(setIdempotencyKey(idempotencyKey))
+        .bodyValue(advanceRecordRequest)
+        .exchange()
+        .expectStatus()
+        .isCreated
+
+      val differentPaymentProfileId = advanceRecordRequest.copy(legacyPaymentProfileId = 9999)
+
+      val errorResponse = webTestClient.post().uri("/advances")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .headers(setIdempotencyKey(idempotencyKey))
+        .bodyValue(differentPaymentProfileId)
+        .exchange()
+        .expectStatus()
+        .isBadRequest.expectBody<ErrorResponse>().returnResult().responseBody!!
+
+      assertThat(errorResponse.userMessage).contains("Idempotency key refers to different payment profile ID")
+    }
+
+    @Test
     fun `should return 400 bad request when sent a malformed body`() {
       val jsonBody = """{ "bad": "json" }"""
 

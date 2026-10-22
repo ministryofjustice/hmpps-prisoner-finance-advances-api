@@ -160,8 +160,8 @@ class RecordService(
       val isDuplicateAdvance = e.message?.contains("uc_advance_records_legacy_payment_profile_id") == true
       if (isDuplicateAdvancePayment || isDuplicateAdvance) {
         advancePaymentRepository.findByTransactionId(advancePaymentEntity.transactionId)!!
-        advance = advanceRecordRepository.getAdvanceRecordsByLegacyPaymentProfileId(advanceRecordEntity.legacyPaymentProfileId) ?:
-        throw CustomException("Idempotency key refers to different payment profile ID", HttpStatus.BAD_REQUEST)
+        advance = advanceRecordRepository.getAdvanceRecordsByLegacyPaymentProfileId(advanceRecordEntity.legacyPaymentProfileId)
+          ?: throw CustomException("Idempotency key refers to different payment profile ID", HttpStatus.BAD_REQUEST)
       } else {
         throw e
       }

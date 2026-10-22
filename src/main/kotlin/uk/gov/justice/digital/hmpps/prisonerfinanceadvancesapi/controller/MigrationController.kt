@@ -1,0 +1,43 @@
+package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.controller
+
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
+import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.Valid
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RestController
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.ErrorResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceMigrationRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services.RecordService
+
+@Tag(name = "Migration Controller")
+@RestController
+class MigrationController(
+  val recordService: RecordService,
+) {
+
+  @Operation(
+    summary = "Create a new advance record",
+    description = "Creates a new advance record for a prisoner's spends account.",
+  )
+  @ApiResponses(
+    value = [
+      ApiResponse(
+        responseCode = "501",
+        description = "Not implemented",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = uk.gov.justice.hmpps.kotlin.common.ErrorResponse::class))],
+      ),
+    ],
+  )
+  @PostMapping("/migrate/advances")
+  fun migrateAdvance(
+    @Valid @RequestBody request: AdvanceMigrationRequest,
+  ): ResponseEntity<AdvanceRecordResponse> = ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(null)
+}

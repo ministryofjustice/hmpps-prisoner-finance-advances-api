@@ -187,7 +187,8 @@ class RecordIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `should return 400 bad request if Idempotency-Key refers to a different payment profile ID`() {
+    fun `should return 400 bad request if transaction or advance cannot be found on attempted idempotent retrieval`() {
+      // This will happen if an idempotency key is reused for a different payment profile ID
       val advanceRecordRequest = CreateAdvanceRecordRequest(
         legacyPaymentProfileId = 1234,
         legacyInformationNumber = "5678",
@@ -229,7 +230,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
         .expectStatus()
         .isBadRequest.expectBody<ErrorResponse>().returnResult().responseBody!!
 
-      assertThat(errorResponse.userMessage).contains("Idempotency key refers to different payment profile ID")
+      assertThat(errorResponse.userMessage).contains("Could not find advance by legacy payment profile id")
     }
 
     @Test

@@ -12,35 +12,45 @@ import java.time.Instant
 import java.util.UUID
 
 class AdvanceMigrationTest : IntegrationTestBase() {
+  val migrationRequest = AdvanceMigrationRequest(
+    legacyPaymentProfileId = 1111,
+    legacyInformationNumber = "1234-1",
+    prisonNumber = "A134ABC",
+    prisonID = "LEI",
+    amountIssued = 100L,
+    amountOutstanding = 80L,
+    createdOn = Instant.now(),
+    migrationTimestamp = Instant.now(),
+    repaymentStartDate = Instant.now(),
+    repaymentAmount = 10L,
+    reference = "",
+    comment = "",
+    createdBy = "TEST",
+    status = AdvanceStatus.ACTIVE,
+    legacyTransactionId = 12345,
+  )
 
   @Test
-  fun `Should return 501 not implemented` () {
-
-    val request = AdvanceMigrationRequest(
-      legacyPaymentProfileId = 1111,
-      legacyInformationNumber = "1234-1",
-      prisonNumber = "A134ABC",
-      prisonID = "LEI",
-      amountIssued = 100L,
-      amountOutstanding = 80L,
-      createdOn = Instant.now(),
-      migrationTimestamp = Instant.now(),
-      repaymentStartDate = Instant.now(),
-      repaymentAmount = 10L,
-      reference = "",
-      comment = "",
-      createdBy = "TEST",
-      status = AdvanceStatus.ACTIVE,
-      legacyTransactionId = 12345
-    )
-
+  fun `Should return 501 not implemented`() {
     webTestClient.post().uri("/migrate/advances")
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
       .headers(setIdempotencyKey(UUID.randomUUID()))
-      .bodyValue(request)
+      .bodyValue(migrationRequest)
       .exchange()
       .expectStatus()
       .isEqualTo(HttpStatus.NOT_IMPLEMENTED)
+      .expectBody<ErrorResponse>()
+  }
+
+  @Test
+  fun `should return 403 forbidden when using the incorrect role`() {
+    webTestClient.post().uri("/migrate/advances")
+      .headers(setAuthorisation(roles = listOf("WRONG_ROLE")))
+      .headers(setIdempotencyKey(UUID.randomUUID()))
+      .bodyValue(migrationRequest)
+      .exchange()
+      .expectStatus()
+      .isEqualTo(HttpStatus.FORBIDDEN)
       .expectBody<ErrorResponse>()
   }
 }

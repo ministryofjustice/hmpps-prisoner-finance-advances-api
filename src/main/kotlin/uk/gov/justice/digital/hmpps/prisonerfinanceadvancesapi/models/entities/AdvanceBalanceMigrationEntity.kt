@@ -17,8 +17,8 @@ class AdvanceBalanceMigrationEntity(
   @JoinColumn(name = "advance_record_id", nullable = false)
   var advanceRecord: AdvanceRecordEntity,
 
-  @Column(name = "amount", nullable = false, unique = false)
-  var amount: Long,
+  @Column(name = "amount_outstanding", nullable = false, unique = false)
+  var amount_outstanding: Long,
 
   @Column(name = "timestamp", nullable = false, unique = false)
   var timestamp: Instant,

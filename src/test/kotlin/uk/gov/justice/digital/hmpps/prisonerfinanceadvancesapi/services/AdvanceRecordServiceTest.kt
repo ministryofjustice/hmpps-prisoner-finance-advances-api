@@ -76,10 +76,10 @@ class AdvanceRecordServiceTest {
   private lateinit var advanceRecordService: RecordService
 
   fun clearDb() {
-    advanceRecordRepository.deleteAll()
     migrationBalanceRepository.deleteAll()
     advancePaymentRepository.deleteAll()
     advanceWriteOffRepository.deleteAll()
+    advanceRecordRepository.deleteAll()
   }
 
   @BeforeEach

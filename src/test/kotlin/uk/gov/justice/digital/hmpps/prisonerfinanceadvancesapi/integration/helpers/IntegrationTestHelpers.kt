@@ -22,6 +22,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvancePaymentRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceWriteOffRepository
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.MigrationBalanceRepository
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 import java.time.Instant
 import java.util.UUID
@@ -34,6 +35,7 @@ class IntegrationTestHelpers(
   private val advanceRecordRepository: AdvanceRecordRepository,
   private val advancePaymentRepository: AdvancePaymentRepository,
   private val advanceWriteOffRepository: AdvanceWriteOffRepository,
+  private val migrationBalanceRepository: MigrationBalanceRepository,
   private val jwtAuthHelper: JwtAuthorisationHelper,
 ) {
 
@@ -190,6 +192,7 @@ class IntegrationTestHelpers(
   fun clearDB() {
     entityManager.clear()
     entityManager.flush()
+    migrationBalanceRepository.deleteAll()
     advanceWriteOffRepository.deleteAll()
     advancePaymentRepository.deleteAll()
     advanceRecordRepository.deleteAll()

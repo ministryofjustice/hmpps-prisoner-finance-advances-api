@@ -65,6 +65,7 @@ data class AdvanceMigrationRequest(
     createdBy = this.createdBy,
     status = this.status,
     updatedAt = updateTime,
+    comment = this.comment,
   )
 
   fun toAdvanceBalanceMigrationEntity(advanceRecord: AdvanceRecordEntity) = AdvanceBalanceMigrationEntity(

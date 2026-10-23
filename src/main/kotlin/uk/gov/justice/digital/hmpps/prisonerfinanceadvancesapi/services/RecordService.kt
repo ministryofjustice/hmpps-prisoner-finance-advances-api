@@ -165,7 +165,7 @@ class RecordService(
         // Note: failure can occur here if an idempotency key is reused for a different payment profile ID
         advancePaymentRepository.findByTransactionId(advancePaymentEntity.transactionId)
           ?: throw CustomException(message = "Could not find advance transaction by ID, but duplicate detected", HttpStatus.BAD_REQUEST)
-        advance = advanceRecordRepository.getAdvanceRecordsByLegacyPaymentProfileId(advanceRecordEntity.legacyPaymentProfileId)
+        advance = advanceRecordRepository.getAdvanceRecordByLegacyPaymentProfileId(advanceRecordEntity.legacyPaymentProfileId)
           ?: throw CustomException("Could not find advance by legacy payment profile id", HttpStatus.BAD_REQUEST)
       } else {
         throw e
@@ -378,17 +378,19 @@ class RecordService(
     }
   }
 
-  fun migrateAdvance(migrationRequest: AdvanceMigrationRequest): AdvanceRecordEntity {
-    // TODO do stuff here
+  @Transactional(rollbackFor = [Exception::class, Error::class])
+  fun migrateAdvance(migrationRequest: AdvanceMigrationRequest): AdvanceRecordResponse {
+    val existingAdvanceRecord = advanceRecordRepository.getAdvanceRecordByLegacyPaymentProfileId(migrationRequest.legacyPaymentProfileId)
+    if (existingAdvanceRecord != null) {
+      return AdvanceRecordResponse.fromEntity(existingAdvanceRecord)
+    }
 
     val advanceEntity = migrationRequest.toAdvanceRecordEntity()
-
     advanceRecordRepository.save(advanceEntity)
 
     val migrationEntity = migrationRequest.toAdvanceBalanceMigrationEntity(advanceEntity)
-
     migrationBalanceRepository.save(migrationEntity)
 
-    return advanceEntity
+    return AdvanceRecordResponse.fromEntity(advanceEntity)
   }
 }

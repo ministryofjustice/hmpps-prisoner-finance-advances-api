@@ -75,8 +75,17 @@ class AdvanceRecordServiceTest {
 
   private lateinit var advanceRecordService: RecordService
 
+  fun clearDb() {
+    advanceRecordRepository.deleteAll()
+    migrationBalanceRepository.deleteAll()
+    advancePaymentRepository.deleteAll()
+    advanceWriteOffRepository.deleteAll()
+  }
+
   @BeforeEach
   fun setUp() {
+    clearDb()
+
     advanceRecordService = RecordService(
       advanceRecordRepository = advanceRecordRepository,
       advancePaymentRepository = advancePaymentRepository,
@@ -312,7 +321,7 @@ class AdvanceRecordServiceTest {
         }.thenThrow(DataIntegrityViolationException("uc_advance_records_legacy_payment_profile_id"))
 
         whenever {
-          advanceRecordRepository.getAdvanceRecordsByLegacyPaymentProfileId(
+          advanceRecordRepository.getAdvanceRecordByLegacyPaymentProfileId(
             legacyPaymentProfileId = request.legacyPaymentProfileId,
           )
         }.thenReturn(advanceEntity)
@@ -333,7 +342,7 @@ class AdvanceRecordServiceTest {
           .saveAndFlush(any<AdvanceRecordEntity>())
 
         verify(advanceRecordRepository, times(1))
-          .getAdvanceRecordsByLegacyPaymentProfileId(request.legacyPaymentProfileId)
+          .getAdvanceRecordByLegacyPaymentProfileId(request.legacyPaymentProfileId)
 
         assertThat(advanceRecordResponse.id).isEqualTo(advanceEntity.id)
         assertThat(advanceRecordResponse.createdOn).isEqualTo(request.createdOn)
@@ -380,7 +389,7 @@ class AdvanceRecordServiceTest {
         }.thenReturn(advanceEntity)
 
         whenever {
-          advanceRecordRepository.getAdvanceRecordsByLegacyPaymentProfileId(request.legacyPaymentProfileId)
+          advanceRecordRepository.getAdvanceRecordByLegacyPaymentProfileId(request.legacyPaymentProfileId)
         }.thenReturn(advanceEntity)
 
         whenever {
@@ -1514,26 +1523,26 @@ class AdvanceRecordServiceTest {
   @Nested
   inner class MigrateAdvance {
 
+    val migrationRequest = AdvanceMigrationRequest(
+      legacyPaymentProfileId = 1111,
+      legacyInformationNumber = "1234-1",
+      prisonNumber = "A134ABC",
+      prisonID = "LEI",
+      amountIssued = 100L,
+      amountOutstanding = 80L,
+      createdOn = Instant.now(),
+      migrationTimestamp = Instant.now(),
+      repaymentStartDate = Instant.now(),
+      repaymentAmount = 10L,
+      reference = "",
+      comment = "",
+      createdBy = "TEST",
+      status = AdvanceStatus.ACTIVE,
+      legacyTransactionId = 12345,
+    )
+
     @Test
     fun `Should create a Advance migration record`() {
-      val migrationRequest = AdvanceMigrationRequest(
-        legacyPaymentProfileId = 1111,
-        legacyInformationNumber = "1234-1",
-        prisonNumber = "A134ABC",
-        prisonID = "LEI",
-        amountIssued = 100L,
-        amountOutstanding = 80L,
-        createdOn = Instant.now(),
-        migrationTimestamp = Instant.now(),
-        repaymentStartDate = Instant.now(),
-        repaymentAmount = 10L,
-        reference = "",
-        comment = "",
-        createdBy = "TEST",
-        status = AdvanceStatus.ACTIVE,
-        legacyTransactionId = 12345,
-      )
-
       advanceRecordService.migrateAdvance(migrationRequest)
 
       val advanceCaptor = argumentCaptor<AdvanceRecordEntity>()
@@ -1554,6 +1563,20 @@ class AdvanceRecordServiceTest {
         .usingRecursiveComparison()
         .ignoringFields("id", "updatedAt")
         .isEqualTo(migrationRequest.toAdvanceBalanceMigrationEntity(advanceRecordEntity))
+    }
+
+    @Test
+    fun `Should not save new records if a record exists with the same legacyPaymentProfileId`() {
+      val returnedEntity = migrationRequest.toAdvanceRecordEntity()
+
+      whenever {
+        advanceRecordRepository.getAdvanceRecordByLegacyPaymentProfileId(migrationRequest.legacyPaymentProfileId)
+      }.thenReturn(returnedEntity)
+
+      advanceRecordService.migrateAdvance(migrationRequest)
+
+      verify(advanceRecordRepository, times(0)).save(any())
+      verify(migrationBalanceRepository, times(0)).save(any())
     }
   }
 }

@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration
 
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
 import org.springframework.test.web.reactive.server.expectBody
@@ -56,12 +55,11 @@ class AdvanceMigrationTest : IntegrationTestBase() {
     assertThat(advanceResponse.createdBy).isEqualTo(migrationRequest.createdBy)
     assertThat(advanceResponse.createdOn).isEqualTo(migrationRequest.createdOn)
     assertThat(advanceResponse.legacyInformationNumber).isEqualTo(migrationRequest.legacyInformationNumber)
-    // TODO: we need to find out what this is
+    // TODO: no one actually seems to be using this field?
     // assertThat(advanceResponse.updatedAt).isEqualTo(Instant.now())
     assertThat(advanceResponse.generalLedgerUUID).isEqualTo(null)
   }
 
-  @Disabled
   @Test
   fun `Should return the same advance record if called twice`() {
     val firstAdvanceResponse = webTestClient.post().uri("/migrate/advances")
@@ -82,6 +80,12 @@ class AdvanceMigrationTest : IntegrationTestBase() {
 
     assertThat(firstAdvanceResponse).isEqualTo(secondAdvanceResponse).usingRecursiveComparison()
   }
+
+  // TODO: for Monday
+  // return bad request if advance is not active
+  // update swagger docs
+  // work out what's happening with updated at?
+  // balance calculation using the migration entity?
 
   @Test
   fun `Should return 403 forbidden when using the incorrect role`() {

@@ -15,6 +15,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.A
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreatePostingRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreateTransactionRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceMigrationRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceWriteOffRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRepaymentRequest
@@ -27,6 +28,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvancePaymentRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceWriteOffRepository
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.MigrationBalanceRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.utils.toPageResponse
 import java.time.DayOfWeek
 import java.time.Instant
@@ -43,6 +45,7 @@ class RecordService(
   private val generalLedgerApiClient: GeneralLedgerApiClient,
   private val accountResolver: GeneralLedgerAccountResolver,
   private val advanceWriteOffRepository: AdvanceWriteOffRepository,
+  private val migrationBalanceRepository: MigrationBalanceRepository,
 ) {
   private val prisonSubAccountRefAdvances = "1502:ADV"
   private val prisonerSubAccountRefAdvances = "SPENDS"
@@ -373,5 +376,19 @@ class RecordService(
     return result.toPageResponse { content ->
       content.map { it.toPrisonerRepaymentResponse() }
     }
+  }
+
+  fun migrateAdvance(migrationRequest: AdvanceMigrationRequest): AdvanceRecordEntity {
+    // TODO do stuff here
+
+    val advanceEntity = migrationRequest.toAdvanceRecordEntity()
+
+    advanceRecordRepository.save(advanceEntity)
+
+    val migrationEntity = migrationRequest.toAdvanceBalanceMigrationEntity(advanceEntity)
+
+    migrationBalanceRepository.save(migrationEntity)
+
+    return advanceEntity
   }
 }

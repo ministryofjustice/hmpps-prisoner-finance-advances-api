@@ -19,6 +19,8 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalled
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceMigrationRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services.RecordService
+import java.time.Instant
+import java.util.UUID
 
 @Tag(name = "Migration Controller")
 @RestController
@@ -44,5 +46,26 @@ class MigrationController(
   @PostMapping("/migrate/advances")
   fun migrateAdvance(
     @Valid @RequestBody request: AdvanceMigrationRequest,
-  ): ResponseEntity<AdvanceRecordResponse> = ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(null)
+  ): ResponseEntity<AdvanceRecordResponse> {
+    val response = AdvanceRecordResponse(
+      // TODO: this is an advanceRecord Id - Not the migration id
+      id = UUID.randomUUID(),
+      legacyPaymentProfileId = request.legacyPaymentProfileId,
+      legacyInformationNumber = request.legacyInformationNumber,
+      prisonNumber = request.prisonNumber,
+      prisonID = request.prisonID,
+      amount = request.amountIssued,
+      createdOn = request.createdOn,
+      repaymentStartDate = request.repaymentStartDate,
+      repaymentAmount = request.repaymentAmount,
+      reference = request.reference,
+      comment = request.comment,
+      createdBy = request.createdBy,
+      status = request.status,
+      updatedAt = Instant.now(),
+      generalLedgerUUID = null,
+    )
+
+    return ResponseEntity.status(HttpStatus.CREATED).body(response)
+  }
 }

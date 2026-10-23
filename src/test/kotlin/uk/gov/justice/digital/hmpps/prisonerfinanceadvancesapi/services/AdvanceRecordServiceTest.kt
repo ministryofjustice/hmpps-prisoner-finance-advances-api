@@ -30,12 +30,14 @@ import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.clients.GeneralLedgerApiClient
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.exceptions.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.PostingType
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceBalanceMigrationEntity
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvancePaymentEntity
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceRecordEntity
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceWriteOffEntity
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreatePostingRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreateTransactionRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceMigrationRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceWriteOffRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRepaymentRequest
@@ -44,6 +46,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvancePaymentRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceWriteOffRepository
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.MigrationBalanceRepository
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -54,6 +57,9 @@ import java.util.UUID
 class AdvanceRecordServiceTest {
   @Mock
   lateinit var advanceRecordRepository: AdvanceRecordRepository
+
+  @Mock
+  lateinit var migrationBalanceRepository: MigrationBalanceRepository
 
   @Mock
   lateinit var advancePaymentRepository: AdvancePaymentRepository
@@ -78,6 +84,7 @@ class AdvanceRecordServiceTest {
       generalLedgerApiClient = generalLedgerApiClient,
       accountResolver = accountResolver,
       advanceWriteOffRepository = advanceWriteOffRepository,
+      migrationBalanceRepository = migrationBalanceRepository,
     )
   }
 
@@ -1501,6 +1508,52 @@ class AdvanceRecordServiceTest {
       }
 
       assertThat(error.status).isEqualTo(HttpStatus.NOT_FOUND)
+    }
+  }
+
+  @Nested
+  inner class MigrateAdvance {
+
+    @Test
+    fun `Should create a Advance migration record`() {
+      val migrationRequest = AdvanceMigrationRequest(
+        legacyPaymentProfileId = 1111,
+        legacyInformationNumber = "1234-1",
+        prisonNumber = "A134ABC",
+        prisonID = "LEI",
+        amountIssued = 100L,
+        amountOutstanding = 80L,
+        createdOn = Instant.now(),
+        migrationTimestamp = Instant.now(),
+        repaymentStartDate = Instant.now(),
+        repaymentAmount = 10L,
+        reference = "",
+        comment = "",
+        createdBy = "TEST",
+        status = AdvanceStatus.ACTIVE,
+        legacyTransactionId = 12345,
+      )
+
+      advanceRecordService.migrateAdvance(migrationRequest)
+
+      val advanceCaptor = argumentCaptor<AdvanceRecordEntity>()
+
+      verify(advanceRecordRepository, times(1)).save(advanceCaptor.capture())
+
+      val advanceRecordEntity = advanceCaptor.firstValue
+
+      assertThat(advanceRecordEntity)
+        .usingRecursiveComparison()
+        .ignoringFields("id", "updatedAt")
+        .isEqualTo(migrationRequest.toAdvanceRecordEntity())
+
+      val migrationCaptor = argumentCaptor<AdvanceBalanceMigrationEntity>()
+      verify(migrationBalanceRepository, times(1)).save(migrationCaptor.capture())
+
+      assertThat(migrationCaptor.firstValue)
+        .usingRecursiveComparison()
+        .ignoringFields("id", "updatedAt")
+        .isEqualTo(migrationRequest.toAdvanceBalanceMigrationEntity(advanceRecordEntity))
     }
   }
 }

@@ -1,6 +1,8 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request
 
 import io.swagger.v3.oas.annotations.media.Schema
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceBalanceMigrationEntity
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.AdvanceRecordEntity
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import java.time.Instant
 
@@ -49,4 +51,25 @@ data class AdvanceMigrationRequest(
 
   @field:Schema(description = "The legacy transaction ID from NOMIS", example = "12345", required = false)
   val legacyTransactionId: Long? = null,
-)
+) {
+  fun toAdvanceRecordEntity(updateTime: Instant = Instant.now()) = AdvanceRecordEntity(
+    legacyPaymentProfileId = this.legacyPaymentProfileId,
+    legacyInformationNumber = this.legacyInformationNumber,
+    prisonNumber = this.prisonNumber,
+    prisonID = this.prisonID,
+    amount = this.amountIssued,
+    createdOn = this.createdOn,
+    repaymentStartDate = this.repaymentStartDate,
+    repaymentAmount = this.repaymentAmount,
+    reference = this.reference,
+    createdBy = this.createdBy,
+    status = this.status,
+    updatedAt = updateTime,
+  )
+
+  fun toAdvanceBalanceMigrationEntity(advanceRecord: AdvanceRecordEntity) = AdvanceBalanceMigrationEntity(
+    advanceRecord = advanceRecord,
+    amountOutstanding = this.amountOutstanding,
+    timestamp = this.migrationTimestamp,
+  )
+}

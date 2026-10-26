@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services
 
-import org.hibernate.id.enhanced.CustomOptimizerDescriptor
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
@@ -384,7 +383,6 @@ class RecordService(
 
   @Transactional(rollbackFor = [Exception::class, Error::class])
   fun migrateAdvance(migrationRequest: AdvanceMigrationRequest): AdvanceRecordResponse {
-
     if (migrationRequest.status != AdvanceStatus.ACTIVE) {
       throw CustomException("Cannot migrate an advance record that is not active", HttpStatus.BAD_REQUEST)
     }

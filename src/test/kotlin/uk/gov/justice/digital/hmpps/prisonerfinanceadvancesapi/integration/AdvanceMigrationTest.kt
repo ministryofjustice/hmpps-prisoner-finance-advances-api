@@ -86,7 +86,6 @@ class AdvanceMigrationTest : IntegrationTestBase() {
   @ParameterizedTest(name = "Should return bad request when trying to migrate an inactive advance with status: {0}")
   @EnumSource(value = AdvanceStatus::class, names = ["REPAID", "WRITTEN_OFF"])
   fun `Should return bad request when trying to migrate an inactive advance`(status: AdvanceStatus) {
-
     val inactiveAdvance = migrationRequest.copy(status = status)
 
     val errorResponse = webTestClient.post().uri("/migrate/advances")

@@ -15,7 +15,6 @@ import java.util.UUID
 class AdvanceBalanceMigrationEntity(
 
   @Id
-  @Column(name = "advance_balance_migration_id")
   var id: UUID = UUID.randomUUID(),
 
   @ManyToOne(fetch = FetchType.EAGER)

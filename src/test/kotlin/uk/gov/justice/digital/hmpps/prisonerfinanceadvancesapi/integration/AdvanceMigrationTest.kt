@@ -55,8 +55,8 @@ class AdvanceMigrationTest : IntegrationTestBase() {
     assertThat(advanceResponse.createdBy).isEqualTo(migrationRequest.createdBy)
     assertThat(advanceResponse.createdOn).isEqualTo(migrationRequest.createdOn)
     assertThat(advanceResponse.legacyInformationNumber).isEqualTo(migrationRequest.legacyInformationNumber)
-    // TODO: no one actually seems to be using this field?
-    // assertThat(advanceResponse.updatedAt).isEqualTo(Instant.now())
+    // updated at is only updated by status changes
+    assertThat(advanceResponse.updatedAt).isNull()
     assertThat(advanceResponse.generalLedgerUUID).isEqualTo(null)
   }
 

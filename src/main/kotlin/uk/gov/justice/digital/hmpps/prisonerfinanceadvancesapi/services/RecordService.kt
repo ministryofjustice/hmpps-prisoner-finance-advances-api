@@ -333,7 +333,10 @@ class RecordService(
 
     if (outStandingBalance == request.writtenOffAmount) {
       advance = advanceRecordRepository.save(
-        advance.copy(status = AdvanceStatus.WRITTEN_OFF),
+        advance.copy(
+          status = AdvanceStatus.WRITTEN_OFF,
+          updatedAt = Instant.now(),
+        ),
       )
     }
 

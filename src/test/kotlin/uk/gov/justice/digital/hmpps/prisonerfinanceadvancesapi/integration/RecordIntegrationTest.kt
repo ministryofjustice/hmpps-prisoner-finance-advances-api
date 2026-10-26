@@ -344,6 +344,7 @@ class RecordIntegrationTest : IntegrationTestBase() {
         .responseBody!!
 
       assertThat(response.status).isEqualTo(AdvanceStatus.WRITTEN_OFF)
+      assertThat(response.updatedAt).isNotNull
       assertThat(response.id).isEqualTo(advanceCreated.id)
     }
 

@@ -52,7 +52,7 @@ data class AdvanceMigrationRequest(
   @field:Schema(description = "The legacy transaction ID from NOMIS", example = "12345", required = false)
   val legacyTransactionId: Long? = null,
 ) {
-  fun toAdvanceRecordEntity(updateTime: Instant = Instant.now()) = AdvanceRecordEntity(
+  fun toAdvanceRecordEntity() = AdvanceRecordEntity(
     legacyPaymentProfileId = this.legacyPaymentProfileId,
     legacyInformationNumber = this.legacyInformationNumber,
     prisonNumber = this.prisonNumber,
@@ -64,7 +64,7 @@ data class AdvanceMigrationRequest(
     reference = this.reference,
     createdBy = this.createdBy,
     status = this.status,
-    updatedAt = updateTime,
+    updatedAt = null,
     comment = this.comment,
   )
 

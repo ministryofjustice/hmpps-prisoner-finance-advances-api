@@ -7,7 +7,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.Adva
 import java.util.UUID
 
 interface AdvanceRecordRepository : JpaRepository<AdvanceRecordEntity, UUID> {
-  fun getAdvanceRecordsByLegacyPaymentProfileId(legacyPaymentProfileId: Long): AdvanceRecordEntity?
+  fun getAdvanceRecordByLegacyPaymentProfileId(legacyPaymentProfileId: Long): AdvanceRecordEntity?
 
   fun findByPrisonNumber(prisonNumber: String, pageable: Pageable): Page<AdvanceRecordEntity>
   fun getAdvanceRecordEntityById(advanceId: UUID): AdvanceRecordEntity?

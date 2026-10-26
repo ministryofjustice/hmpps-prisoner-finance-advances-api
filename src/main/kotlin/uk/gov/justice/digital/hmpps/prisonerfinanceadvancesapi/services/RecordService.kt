@@ -15,6 +15,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.entities.A
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreatePostingRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreateTransactionRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceMigrationRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceWriteOffRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRepaymentRequest
@@ -27,6 +28,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvancePaymentRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceWriteOffRepository
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.MigrationBalanceRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.utils.toPageResponse
 import java.time.DayOfWeek
 import java.time.Instant
@@ -43,6 +45,7 @@ class RecordService(
   private val generalLedgerApiClient: GeneralLedgerApiClient,
   private val accountResolver: GeneralLedgerAccountResolver,
   private val advanceWriteOffRepository: AdvanceWriteOffRepository,
+  private val migrationBalanceRepository: MigrationBalanceRepository,
 ) {
   private val prisonSubAccountRefAdvances = "1502:ADV"
   private val prisonerSubAccountRefAdvances = "SPENDS"
@@ -162,7 +165,7 @@ class RecordService(
         // Note: failure can occur here if an idempotency key is reused for a different payment profile ID
         advancePaymentRepository.findByTransactionId(advancePaymentEntity.transactionId)
           ?: throw CustomException(message = "Could not find advance transaction by ID, but duplicate detected", HttpStatus.BAD_REQUEST)
-        advance = advanceRecordRepository.getAdvanceRecordsByLegacyPaymentProfileId(advanceRecordEntity.legacyPaymentProfileId)
+        advance = advanceRecordRepository.getAdvanceRecordByLegacyPaymentProfileId(advanceRecordEntity.legacyPaymentProfileId)
           ?: throw CustomException("Could not find advance by legacy payment profile id", HttpStatus.BAD_REQUEST)
       } else {
         throw e
@@ -330,7 +333,10 @@ class RecordService(
 
     if (outStandingBalance == request.writtenOffAmount) {
       advance = advanceRecordRepository.save(
-        advance.copy(status = AdvanceStatus.WRITTEN_OFF),
+        advance.copy(
+          status = AdvanceStatus.WRITTEN_OFF,
+          updatedAt = Instant.now(),
+        ),
       )
     }
 
@@ -373,5 +379,25 @@ class RecordService(
     return result.toPageResponse { content ->
       content.map { it.toPrisonerRepaymentResponse() }
     }
+  }
+
+  @Transactional(rollbackFor = [Exception::class, Error::class])
+  fun migrateAdvance(migrationRequest: AdvanceMigrationRequest): AdvanceRecordResponse {
+    if (migrationRequest.status != AdvanceStatus.ACTIVE) {
+      throw CustomException("Cannot migrate an advance record that is not active", HttpStatus.BAD_REQUEST)
+    }
+
+    val existingAdvanceRecord = advanceRecordRepository.getAdvanceRecordByLegacyPaymentProfileId(migrationRequest.legacyPaymentProfileId)
+    if (existingAdvanceRecord != null) {
+      return AdvanceRecordResponse.fromEntity(existingAdvanceRecord)
+    }
+
+    val advanceEntity = migrationRequest.toAdvanceRecordEntity()
+    advanceRecordRepository.save(advanceEntity)
+
+    val migrationEntity = migrationRequest.toAdvanceBalanceMigrationEntity(advanceEntity)
+    migrationBalanceRepository.save(migrationEntity)
+
+    return AdvanceRecordResponse.fromEntity(advanceEntity)
   }
 }

@@ -48,7 +48,7 @@ data class AdvanceRecordResponse(
   val status: AdvanceStatus,
 
   @field:Schema(description = "Last time this advance record was changed")
-  val updatedAt: Instant?,
+  val updatedAt: Instant? = null,
 
   @field:Schema(description = "The transaction UUID from General Ledger if one was created")
   val generalLedgerUUID: UUID?,

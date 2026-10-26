@@ -15,10 +15,10 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RW
-import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.ErrorResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceMigrationRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services.RecordService
+import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
 @Tag(name = "Migration Controller")
 @RestController
@@ -33,9 +33,29 @@ class MigrationController(
   @ApiResponses(
     value = [
       ApiResponse(
-        responseCode = "501",
-        description = "Not implemented",
-        content = [Content(mediaType = "application/json", schema = Schema(implementation = uk.gov.justice.hmpps.kotlin.common.ErrorResponse::class))],
+        responseCode = "201",
+        description = "Advance record Migrated",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = AdvanceRecordResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Bad Request",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized - requires a valid OAuth2 token",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden - requires an appropriate role",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "Internal Server Error - An unexpected error occurred.",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
       ),
     ],
   )
@@ -44,5 +64,9 @@ class MigrationController(
   @PostMapping("/migrate/advances")
   fun migrateAdvance(
     @Valid @RequestBody request: AdvanceMigrationRequest,
-  ): ResponseEntity<AdvanceRecordResponse> = ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(null)
+  ): ResponseEntity<AdvanceRecordResponse> {
+    val response = recordService.migrateAdvance(request)
+
+    return ResponseEntity.status(HttpStatus.CREATED).body(response)
+  }
 }

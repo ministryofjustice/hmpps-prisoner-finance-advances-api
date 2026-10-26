@@ -18,6 +18,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISO
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceMigrationRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services.RecordService
+import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
 @Tag(name = "Migration Controller")
 @RestController
@@ -32,9 +33,29 @@ class MigrationController(
   @ApiResponses(
     value = [
       ApiResponse(
-        responseCode = "501",
-        description = "Not implemented",
-        content = [Content(mediaType = "application/json", schema = Schema(implementation = uk.gov.justice.hmpps.kotlin.common.ErrorResponse::class))],
+        responseCode = "201",
+        description = "Advance record Migrated",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = AdvanceRecordResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Bad Request",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized - requires a valid OAuth2 token",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden - requires an appropriate role",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "Internal Server Error - An unexpected error occurred.",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
       ),
     ],
   )

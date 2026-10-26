@@ -1542,7 +1542,7 @@ class AdvanceRecordServiceTest {
     )
 
     @Test
-    fun `Should create a Advance migration record`() {
+    fun `Should create a Advance Balance Migration record and Advance Record`() {
       advanceRecordService.migrateAdvance(migrationRequest)
 
       val advanceCaptor = argumentCaptor<AdvanceRecordEntity>()

@@ -2,6 +2,8 @@ package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
 import org.springframework.http.HttpStatus
 import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RW
@@ -81,11 +83,22 @@ class AdvanceMigrationTest : IntegrationTestBase() {
     assertThat(firstAdvanceResponse).isEqualTo(secondAdvanceResponse).usingRecursiveComparison()
   }
 
-  // TODO: for Monday
-  // return bad request if advance is not active
-  // update swagger docs
-  // work out what's happening with updated at?
-  // balance calculation using the migration entity?
+  @ParameterizedTest(name = "Should return bad request when trying to migrate an inactive advance with status: {0}")
+  @EnumSource(value = AdvanceStatus::class, names = ["REPAID", "WRITTEN_OFF"])
+  fun `Should return bad request when trying to migrate an inactive advance`(status: AdvanceStatus) {
+
+    val inactiveAdvance = migrationRequest.copy(status = status)
+
+    val errorResponse = webTestClient.post().uri("/migrate/advances")
+      .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+      .bodyValue(inactiveAdvance)
+      .exchange()
+      .expectStatus()
+      .isEqualTo(HttpStatus.BAD_REQUEST)
+      .expectBody<ErrorResponse>().returnResult().responseBody!!
+
+    assertThat(errorResponse.userMessage).isEqualTo("Cannot migrate an advance record that is not active")
+  }
 
   @Test
   fun `Should return 403 forbidden when using the incorrect role`() {

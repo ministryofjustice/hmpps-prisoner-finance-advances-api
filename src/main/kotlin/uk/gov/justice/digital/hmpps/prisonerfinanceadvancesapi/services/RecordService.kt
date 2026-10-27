@@ -201,11 +201,14 @@ class RecordService(
 
   fun calculateAdvanceBalance(advance: AdvanceRecordEntity): Long {
     // TODO: this might need a refactor for when migrated advances that don't have payments will get added - PFI 1659
+
+    val amountOutstandingAfterMigration = migrationBalanceRepository.findByAdvanceRecordId(advance.id)?.amountOutstanding ?: 0
+
     val writeOffs = advanceWriteOffRepository.findByAdvanceRecordId(advance.id).sumOf { it.amount }
     val payments = advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advance.id)
       .fold(0L) { s, it -> s + applyPostingType(it.prisonerPostingType, it.amount) }
 
-    return payments - writeOffs
+    return amountOutstandingAfterMigration - payments - writeOffs
   }
 
   private val ukZone: ZoneId = ZoneId.of("Europe/London")

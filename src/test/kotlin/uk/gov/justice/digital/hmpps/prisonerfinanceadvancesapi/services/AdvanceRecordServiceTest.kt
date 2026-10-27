@@ -1016,6 +1016,39 @@ class AdvanceRecordServiceTest {
 
       assertThat(accountBalance).isEqualTo(55)
     }
+
+    @Test
+    fun `should calculate balance with a starting migration and nothing else`() {
+      whenever(
+        migrationBalanceRepository.findByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(
+        AdvanceBalanceMigrationEntity(
+          advanceRecord = advanceEntity,
+          amountOutstanding = 80L,
+          timestamp = Instant.now(),
+        ),
+      )
+
+      whenever(
+        advancePaymentRepository.findAdvancePaymentEntitiesByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(emptyList())
+
+      whenever(
+        advanceWriteOffRepository.findByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(emptyList())
+
+      val accountBalance = advanceRecordService.calculateAdvanceBalance(advanceEntity)
+
+      assertThat(accountBalance).isEqualTo(80)
+    }
+
+    // TODO
+    // test includes migrated balance that arrived after transactions (transaction -> migration -> transaction)
+    // make the balance migration unique
+    // test includes migrated balance that arrived after a write off (partial writeoff -> migration)
+    // test edge case if transaction timestamp is same as migration timestamp
+    // both advanceWriteOffRepository and advancePaymentRepository finds need to also accept timestamp search
+    // should get bad request if try to migrate an active advance with a outstanding balance of 0 or initial balance of 0 (paid off) (and on sync)
   }
 
   @Nested

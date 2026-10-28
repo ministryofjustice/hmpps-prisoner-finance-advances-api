@@ -11,13 +11,18 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISO
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.GeneralLedgerApiExtension.Companion.generalLedgerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceMigrationRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRepaymentRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AccountAdvanceBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceBalanceResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 class AdvanceBalancesTest : IntegrationTestBase() {
@@ -290,6 +295,229 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(17)
       assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(advanceResponse.repaymentAmount)
       assertThat(advanceBalanceResponse.nextPaymentDate).isEqualTo(expectedNextPaymentDate)
+    }
+
+    @Nested
+    inner class Migration {
+      val paymentProfileId = 123L
+      val informationNumber = "123-1"
+      val prisonNumber = "A123456"
+      val prisonId = "LEI"
+      val migrationTimestamp = Instant.now()
+      val migrationRequest = AdvanceMigrationRequest(
+        legacyPaymentProfileId = paymentProfileId,
+        legacyInformationNumber = informationNumber,
+        prisonNumber = prisonNumber,
+        prisonID = prisonId,
+        amountIssued = 100,
+        amountOutstanding = 80,
+        createdOn = migrationTimestamp.minus(5, ChronoUnit.DAYS),
+        migrationTimestamp = migrationTimestamp,
+        repaymentStartDate = migrationTimestamp.plus(5, ChronoUnit.DAYS),
+        repaymentAmount = 1,
+        reference = "",
+        comment = "",
+        createdBy = "",
+        status = AdvanceStatus.ACTIVE,
+        legacyTransactionId = 1234556,
+      )
+
+      val requestPayment = CreateAdvanceRepaymentRequest(
+        amount = 12,
+        legacyTransactionId = 22222,
+        createdAt = Instant.now(),
+        createdBy = "TEST",
+        description = "Test description",
+        entrySequence = 2,
+      )
+
+      @Test
+      fun `Should return the balance of an advance with a starting migration`() {
+        val advance = webTestClient.post().uri("/migrate/advances")
+          .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+          .bodyValue(migrationRequest)
+          .exchange()
+          .expectStatus()
+          .isCreated
+          .expectBody<AdvanceRecordResponse>()
+          .returnResult()
+          .responseBody!!
+
+        val advanceBalanceResponse = webTestClient.get().uri("/advances/${advance.id}/balance")
+          .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<AdvanceBalanceResponse>()
+          .returnResult()
+          .responseBody!!
+
+        assertThat(advanceBalanceResponse.balanceOutstanding).isEqualTo(migrationRequest.amountOutstanding)
+      }
+
+      @Test
+      fun `Should return the balance of an advance with a repayment before the starting migration`() {
+        val repaymentBeforeMigration = requestPayment.copy(createdAt = migrationTimestamp.minus(1, ChronoUnit.DAYS))
+
+        val advance = webTestClient.post().uri("/migrate/advances")
+          .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+          .bodyValue(migrationRequest)
+          .exchange()
+          .expectStatus()
+          .isCreated
+          .expectBody<AdvanceRecordResponse>()
+          .returnResult()
+          .responseBody!!
+
+        integrationTestHelpers.stubGetSubAccounts(
+          prisonId = prisonId,
+          prisonNumber = prisonNumber,
+          prisonerSubAccountId = prisonerSubAccountId,
+          prisonSubAccountId = prisonSubAccountId,
+          prisonerParentAccountId = prisonerParentAccountId,
+          prisonParentAccountId = prisonParentAccountId,
+        )
+
+        generalLedgerApi.stubPostTransaction(
+          creditorSubAccountUuid = prisonSubAccountId.toString(),
+          debtorSubAccountUuid = prisonerSubAccountId.toString(),
+          returnUUID = UUID.randomUUID(),
+          amount = requestPayment.amount,
+          legacyTransactionId = requestPayment.legacyTransactionId.toString(),
+        )
+
+        webTestClient.post().uri("/advances/${advance.id}/repay")
+          .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+          .headers(setIdempotencyKey(UUID.randomUUID()))
+          .bodyValue(repaymentBeforeMigration)
+          .exchange()
+          .expectStatus()
+          .isCreated
+
+        val advanceBalanceResponse = webTestClient.get().uri("/advances/${advance.id}/balance")
+          .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<AdvanceBalanceResponse>()
+          .returnResult()
+          .responseBody!!
+
+        assertThat(advanceBalanceResponse.balanceOutstanding).isEqualTo(migrationRequest.amountOutstanding)
+      }
+
+      @Test
+      fun `Should return the balance of an advance with a repayment after the starting migration`() {
+        val repaymentAfterMigration = requestPayment.copy(createdAt = migrationTimestamp.plus(1, ChronoUnit.DAYS))
+
+        val advance = webTestClient.post().uri("/migrate/advances")
+          .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+          .bodyValue(migrationRequest)
+          .exchange()
+          .expectStatus()
+          .isCreated
+          .expectBody<AdvanceRecordResponse>()
+          .returnResult()
+          .responseBody!!
+
+        integrationTestHelpers.stubGetSubAccounts(
+          prisonId = prisonId,
+          prisonNumber = prisonNumber,
+          prisonerSubAccountId = prisonerSubAccountId,
+          prisonSubAccountId = prisonSubAccountId,
+          prisonerParentAccountId = prisonerParentAccountId,
+          prisonParentAccountId = prisonParentAccountId,
+        )
+
+        generalLedgerApi.stubPostTransaction(
+          creditorSubAccountUuid = prisonSubAccountId.toString(),
+          debtorSubAccountUuid = prisonerSubAccountId.toString(),
+          returnUUID = UUID.randomUUID(),
+          amount = requestPayment.amount,
+          legacyTransactionId = requestPayment.legacyTransactionId.toString(),
+        )
+
+        webTestClient.post().uri("/advances/${advance.id}/repay")
+          .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+          .headers(setIdempotencyKey(UUID.randomUUID()))
+          .bodyValue(repaymentAfterMigration)
+          .exchange()
+          .expectStatus()
+          .isCreated
+
+        val advanceBalanceResponse = webTestClient.get().uri("/advances/${advance.id}/balance")
+          .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<AdvanceBalanceResponse>()
+          .returnResult()
+          .responseBody!!
+
+        assertThat(advanceBalanceResponse.balanceOutstanding).isEqualTo(migrationRequest.amountOutstanding - requestPayment.amount)
+      }
+
+      @Test
+      fun `Should return the balance of an advance with a partial writeoff before the starting migration`() {
+        val advance = webTestClient.post().uri("/migrate/advances")
+          .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+          .bodyValue(migrationRequest)
+          .exchange()
+          .expectStatus()
+          .isCreated
+          .expectBody<AdvanceRecordResponse>()
+          .returnResult()
+          .responseBody!!
+
+        integrationTestHelpers.writeOffAdvance(
+          advanceId = advance.id,
+          amount = 10,
+          writeOffTime = migrationTimestamp.minus(1, ChronoUnit.DAYS),
+        )
+
+        val advanceBalanceResponse = webTestClient.get().uri("/advances/${advance.id}/balance")
+          .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<AdvanceBalanceResponse>()
+          .returnResult()
+          .responseBody!!
+
+        assertThat(advanceBalanceResponse.balanceOutstanding).isEqualTo(migrationRequest.amountOutstanding)
+      }
+
+      @Test
+      fun `Should return the balance of an advance with a partial writeoff after the starting migration`() {
+        val writeOffAmount = 10L
+
+        val advance = webTestClient.post().uri("/migrate/advances")
+          .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+          .bodyValue(migrationRequest)
+          .exchange()
+          .expectStatus()
+          .isCreated
+          .expectBody<AdvanceRecordResponse>()
+          .returnResult()
+          .responseBody!!
+
+        integrationTestHelpers.writeOffAdvance(
+          advanceId = advance.id,
+          amount = writeOffAmount,
+          writeOffTime = migrationTimestamp.plus(1, ChronoUnit.DAYS),
+        )
+
+        val advanceBalanceResponse = webTestClient.get().uri("/advances/${advance.id}/balance")
+          .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<AdvanceBalanceResponse>()
+          .returnResult()
+          .responseBody!!
+
+        assertThat(advanceBalanceResponse.balanceOutstanding).isEqualTo(migrationRequest.amountOutstanding - writeOffAmount)
+      }
     }
 
     @Test

@@ -77,9 +77,13 @@ class IntegrationTestHelpers(
     )
   }
 
-  fun writeOffAdvance(advanceId: UUID, amount: Long) {
+  fun writeOffAdvance(
+    advanceId: UUID,
+    amount: Long,
+    writeOffTime: Instant = Instant.now(),
+  ) {
     val advanceWriteOffRequest = AdvanceWriteOffRequest(
-      writeOffDateTime = Instant.now(),
+      writeOffDateTime = writeOffTime,
       writtenOffBy = "TEST",
       writtenOffAmount = amount,
     )

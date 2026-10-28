@@ -51,6 +51,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
@@ -881,6 +882,9 @@ class AdvanceRecordServiceTest {
       createdBy = "TEST",
     )
 
+    val today: Instant = Instant.now()
+    val yesterday: Instant = Instant.now().minus(1, ChronoUnit.DAYS)
+
     @Test
     fun `should calculate the advance balance when the advance doesn't have any repayments`() {
       whenever(
@@ -1015,6 +1019,97 @@ class AdvanceRecordServiceTest {
       val accountBalance = advanceRecordService.calculateAdvanceBalance(advanceEntity)
 
       assertThat(accountBalance).isEqualTo(55)
+    }
+
+    @Test
+    fun `should calculate balance with a starting migration`() {
+      whenever(
+        migrationBalanceRepository.findByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(
+        AdvanceBalanceMigrationEntity(
+          advanceRecord = advanceEntity,
+          amountOutstanding = 80L,
+          timestamp = today,
+        ),
+      )
+
+      // when there is a migration, we use a different repo method for payments
+      whenever(
+        advancePaymentRepository.findByAdvanceRecordIdAndTimestampAfter(advanceEntity.id, today),
+      ).thenReturn(emptyList())
+
+      // when there is a migration, we use a different repo method for write-offs
+      whenever(
+        advanceWriteOffRepository.findByAdvanceRecordIdAndCreatedAtAfter(advanceEntity.id, today),
+      ).thenReturn(emptyList())
+
+      val accountBalance = advanceRecordService.calculateAdvanceBalance(advanceEntity)
+
+      assertThat(accountBalance).isEqualTo(80)
+    }
+
+    @Test
+    fun `should calculate balance with a repayment after migration`() {
+      val advanceRepayment = AdvancePaymentEntity(
+        advanceRecord = advanceEntity,
+        amount = 20L,
+        timestamp = today,
+        transactionId = UUID.randomUUID(),
+        prisonerPostingType = PostingType.DR,
+        createdBy = "",
+      )
+
+      whenever(
+        migrationBalanceRepository.findByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(
+        AdvanceBalanceMigrationEntity(
+          advanceRecord = advanceEntity,
+          amountOutstanding = 80L,
+          timestamp = yesterday,
+        ),
+      )
+      whenever(
+        advancePaymentRepository.findByAdvanceRecordIdAndTimestampAfter(advanceEntity.id, yesterday),
+      ).thenReturn(listOf(advanceRepayment))
+
+      whenever(
+        advanceWriteOffRepository.findByAdvanceRecordIdAndCreatedAtAfter(advanceEntity.id, yesterday),
+      ).thenReturn(emptyList())
+
+      val accountBalance = advanceRecordService.calculateAdvanceBalance(advanceEntity)
+
+      assertThat(accountBalance).isEqualTo(60)
+    }
+
+    @Test
+    fun `should calculate balance with a partial write off after migration`() {
+      val advanceWriteOff = AdvanceWriteOffEntity(
+        advanceRecordId = advanceEntity.id,
+        amount = 30L,
+        createdBy = "",
+        createdAt = today,
+      )
+
+      whenever(
+        migrationBalanceRepository.findByAdvanceRecordId(advanceEntity.id),
+      ).thenReturn(
+        AdvanceBalanceMigrationEntity(
+          advanceRecord = advanceEntity,
+          amountOutstanding = 80L,
+          timestamp = yesterday,
+        ),
+      )
+      whenever(
+        advancePaymentRepository.findByAdvanceRecordIdAndTimestampAfter(advanceEntity.id, yesterday),
+      ).thenReturn(emptyList())
+
+      whenever(
+        advanceWriteOffRepository.findByAdvanceRecordIdAndCreatedAtAfter(advanceEntity.id, yesterday),
+      ).thenReturn(listOf(advanceWriteOff))
+
+      val accountBalance = advanceRecordService.calculateAdvanceBalance(advanceEntity)
+
+      assertThat(accountBalance).isEqualTo(50)
     }
   }
 

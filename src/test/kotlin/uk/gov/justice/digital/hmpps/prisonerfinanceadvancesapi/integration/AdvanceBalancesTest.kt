@@ -456,6 +456,68 @@ class AdvanceBalancesTest : IntegrationTestBase() {
 
         assertThat(advanceBalanceResponse.balanceOutstanding).isEqualTo(migrationRequest.amountOutstanding - requestPayment.amount)
       }
+
+      @Test
+      fun `Should return the balance of an advance with a partial writeoff before the starting migration`() {
+        val advance = webTestClient.post().uri("/migrate/advances")
+          .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+          .bodyValue(migrationRequest)
+          .exchange()
+          .expectStatus()
+          .isCreated
+          .expectBody<AdvanceRecordResponse>()
+          .returnResult()
+          .responseBody!!
+
+        integrationTestHelpers.writeOffAdvance(
+          advanceId = advance.id,
+          amount = 10,
+          writeOffTime = migrationTimestamp.minus(1, ChronoUnit.DAYS),
+        )
+
+        val advanceBalanceResponse = webTestClient.get().uri("/advances/${advance.id}/balance")
+          .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<AdvanceBalanceResponse>()
+          .returnResult()
+          .responseBody!!
+
+        assertThat(advanceBalanceResponse.balanceOutstanding).isEqualTo(migrationRequest.amountOutstanding)
+      }
+
+      @Test
+      fun `Should return the balance of an advance with a partial writeoff after the starting migration`() {
+        val writeOffAmount = 10L
+
+        val advance = webTestClient.post().uri("/migrate/advances")
+          .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+          .bodyValue(migrationRequest)
+          .exchange()
+          .expectStatus()
+          .isCreated
+          .expectBody<AdvanceRecordResponse>()
+          .returnResult()
+          .responseBody!!
+
+        integrationTestHelpers.writeOffAdvance(
+          advanceId = advance.id,
+          amount = writeOffAmount,
+          writeOffTime = migrationTimestamp.plus(1, ChronoUnit.DAYS),
+        )
+
+        val advanceBalanceResponse = webTestClient.get().uri("/advances/${advance.id}/balance")
+          .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<AdvanceBalanceResponse>()
+          .returnResult()
+          .responseBody!!
+
+        assertThat(advanceBalanceResponse.balanceOutstanding).isEqualTo(migrationRequest.amountOutstanding - writeOffAmount)
+      }
     }
 
     @Test

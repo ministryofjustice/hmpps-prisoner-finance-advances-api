@@ -1111,9 +1111,6 @@ class AdvanceRecordServiceTest {
 
       assertThat(accountBalance).isEqualTo(50)
     }
-
-    // TODO
-    // test edge case if transaction timestamp is same as migration timestamp - integration test
   }
 
   @Nested

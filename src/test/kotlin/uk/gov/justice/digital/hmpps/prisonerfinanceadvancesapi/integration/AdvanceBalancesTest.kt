@@ -627,6 +627,7 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(response.weeklyPaymentAmount).isEqualTo(advanceOne.repaymentAmount + advanceTwo.repaymentAmount)
       assertThat(response.advancesAmount).isEqualTo(advanceOne.amount + advanceTwo.amount)
       assertThat(response.balancesOutstanding).isEqualTo(advanceOne.amount + advanceTwo.amount - advanceRepaymentResponse.amount)
+      assertThat(response.advanceCount).isEqualTo(2)
     }
 
     @Test
@@ -643,6 +644,7 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(response.weeklyPaymentAmount).isEqualTo(0)
       assertThat(response.advancesAmount).isEqualTo(0)
       assertThat(response.balancesOutstanding).isEqualTo(0)
+      assertThat(response.advanceCount).isEqualTo(0)
     }
 
     @Test

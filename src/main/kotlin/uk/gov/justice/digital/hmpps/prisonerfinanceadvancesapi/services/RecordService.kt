@@ -367,6 +367,7 @@ class RecordService(
       advancesAmount = totalActiveAdvanceAmount,
       balancesOutstanding = totalActiveOutstandingBalance,
       weeklyPaymentAmount = totalActiveWeeklyPaymentAmount,
+      advanceCount = allActiveAdvances.size,
     )
   }
 

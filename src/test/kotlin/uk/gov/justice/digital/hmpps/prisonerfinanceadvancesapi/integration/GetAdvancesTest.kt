@@ -125,17 +125,6 @@ class GetAdvancesTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `should return 400 BAD REQUEST when prison number is invalid`() {
-      val invalidPrisonNumber = "A123 45BC"
-
-      webTestClient.get().uri("/advances/$invalidPrisonNumber")
-        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
-        .exchange()
-        .expectStatus()
-        .isBadRequest
-    }
-
-    @Test
     fun `should return 400 BAD REQUEST when requesting a page that doesnt exist`() {
       repeat(25) { i ->
         integrationTestHelpers.createAdvance(

@@ -11,7 +11,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Min
-import jakarta.validation.constraints.Pattern
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -31,8 +30,6 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.PagedResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services.RecordService
-import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.utils.VALIDATION_MESSAGE_PRISON_NUMBER
-import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.utils.VALIDATION_REGEX_PRISON_NUMBER
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.util.UUID
 
@@ -134,10 +131,7 @@ class AdvanceRecordController(val recordService: RecordService) {
   @PreAuthorize("hasAnyAuthority('$ROLE_PRISONER_FINANCE__ADVANCES__RW', '$ROLE_PRISONER_FINANCE__ADVANCES__RO')")
   @GetMapping("/advances/{prisonNumber}")
   fun getAdvances(
-    @PathVariable @Pattern(
-      regexp = VALIDATION_REGEX_PRISON_NUMBER,
-      message = VALIDATION_MESSAGE_PRISON_NUMBER,
-    ) prisonNumber: String,
+    @PathVariable prisonNumber: String,
     @RequestParam @Min(1) pageNumber: Int = 1,
     @RequestParam @Min(1) pageSize: Int = 25,
   ): ResponseEntity<PagedResponse<AdvanceRecordResponse>> {
@@ -283,10 +277,7 @@ class AdvanceRecordController(val recordService: RecordService) {
   @PreAuthorize("hasAnyAuthority('$ROLE_PRISONER_FINANCE__ADVANCES__RW', '$ROLE_PRISONER_FINANCE__ADVANCES__RO')")
   @GetMapping("/advances/account/{prisonNumber}/balance")
   fun getAccountAdvanceBalance(
-    @PathVariable @Pattern(
-      regexp = VALIDATION_REGEX_PRISON_NUMBER,
-      message = VALIDATION_MESSAGE_PRISON_NUMBER,
-    ) prisonNumber: String,
+    @PathVariable prisonNumber: String,
   ): ResponseEntity<AccountAdvanceBalanceResponse> {
     val response = recordService.getAccountAdvanceBalance(prisonNumber)
 

@@ -648,18 +648,6 @@ class AdvanceBalancesTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `should return 400 if the prisonNumber is not valid`() {
-      webTestClient.get().uri("/advances/account/INVALID/balance", "INVALID")
-        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RO)))
-        .exchange()
-        .expectStatus()
-        .isBadRequest
-        .expectBody<ErrorResponse>()
-        .returnResult()
-        .responseBody!!
-    }
-
-    @Test
     fun `should return 403 an invalid role is passed`() {
       webTestClient.get().uri("/advances/account/$prisonNumber/balance", prisonNumber)
         .headers(setAuthorisation(roles = listOf("ROLE__INVALID")))

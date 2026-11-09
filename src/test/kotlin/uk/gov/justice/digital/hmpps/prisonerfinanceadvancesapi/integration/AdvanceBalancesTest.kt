@@ -91,6 +91,7 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(13)
       assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(repaymentAmount)
       assertThat(advanceBalanceResponse.nextPaymentDate).isEqualTo(expectedNextPaymentDate)
+      assertThat(advanceBalanceResponse.status).isEqualTo(AdvanceStatus.ACTIVE)
     }
 
     @Test
@@ -127,6 +128,7 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(20)
       assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(repaymentAmount)
       assertThat(advanceBalanceResponse.nextPaymentDate).isEqualTo(expectedNextPaymentDate)
+      assertThat(advanceBalanceResponse.status).isEqualTo(AdvanceStatus.ACTIVE)
     }
 
     @Test
@@ -173,6 +175,7 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(0)
       assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(repaymentAmount)
       assertThat(advanceBalanceResponse.nextPaymentDate).isNull()
+      assertThat(advanceBalanceResponse.status).isEqualTo(AdvanceStatus.REPAID)
     }
 
     @Test
@@ -210,6 +213,7 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(0)
       assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(advanceResponse.repaymentAmount)
       assertThat(advanceBalanceResponse.nextPaymentDate).isNull()
+      assertThat(advanceBalanceResponse.status).isEqualTo(AdvanceStatus.WRITTEN_OFF)
     }
 
     @Test
@@ -249,6 +253,7 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(9)
       assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(advanceResponse.repaymentAmount)
       assertThat(advanceBalanceResponse.nextPaymentDate).isEqualTo(expectedNextPaymentDate)
+      assertThat(advanceBalanceResponse.status).isEqualTo(AdvanceStatus.ACTIVE)
     }
 
     @Test
@@ -295,6 +300,7 @@ class AdvanceBalancesTest : IntegrationTestBase() {
       assertThat(advanceBalanceResponse.remainingPayments).isEqualTo(17)
       assertThat(advanceBalanceResponse.weeklyPaymentAmount).isEqualTo(advanceResponse.repaymentAmount)
       assertThat(advanceBalanceResponse.nextPaymentDate).isEqualTo(expectedNextPaymentDate)
+      assertThat(advanceBalanceResponse.status).isEqualTo(AdvanceStatus.ACTIVE)
     }
 
     @Nested

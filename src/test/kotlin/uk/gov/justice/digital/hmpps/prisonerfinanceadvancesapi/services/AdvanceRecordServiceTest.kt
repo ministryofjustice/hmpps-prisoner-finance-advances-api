@@ -1293,6 +1293,17 @@ class AdvanceRecordServiceTest {
       assertThat(balance.weeklyPaymentAmount).isEqualTo(inactiveAdvance.repaymentAmount)
       assertThat(balance.remainingPayments).isEqualTo(0)
     }
+
+    @Test
+    fun `should return advance status`() {
+      whenever(
+        advanceRecordRepository.getAdvanceRecordEntityById(advanceEntity.id),
+      ).thenReturn(advanceEntity)
+
+      val balanceResponse = advanceRecordService.getAdvanceBalance(advanceEntity.id)
+
+      assertThat(balanceResponse.status).isEqualTo(advanceEntity.status)
+    }
   }
 
   @Nested

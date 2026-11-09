@@ -239,6 +239,7 @@ class RecordService(
         weeklyPaymentAmount = advance.repaymentAmount,
         remainingPayments = 0,
         nextPaymentDate = null,
+        status = advance.status,
       )
     }
 
@@ -251,6 +252,7 @@ class RecordService(
       weeklyPaymentAmount = advance.repaymentAmount,
       remainingPayments = Math.ceilDiv(outstandingBalance, advance.repaymentAmount),
       nextPaymentDate = nextPaymentDate,
+      status = advance.status,
     )
   }
 

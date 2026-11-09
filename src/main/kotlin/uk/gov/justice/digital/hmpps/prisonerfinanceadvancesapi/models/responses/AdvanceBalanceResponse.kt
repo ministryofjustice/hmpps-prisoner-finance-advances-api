@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses
 
 import io.swagger.v3.oas.annotations.media.Schema
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import java.time.Instant
 import java.time.LocalDate
 
@@ -22,4 +23,7 @@ class AdvanceBalanceResponse(
 
   @field:Schema(description = "Date of the next due repayment")
   val nextPaymentDate: LocalDate?,
+
+  @field:Schema(description = "Current status of the advance")
+  val status: AdvanceStatus,
 )

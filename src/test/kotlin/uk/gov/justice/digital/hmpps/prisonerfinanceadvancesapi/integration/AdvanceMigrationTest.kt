@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
@@ -15,6 +16,12 @@ import java.time.Instant
 import java.util.UUID
 
 class AdvanceMigrationTest : IntegrationTestBase() {
+
+  @BeforeEach
+  fun setup() {
+    integrationTestHelpers.clearDB()
+  }
+
   val migrationRequest = AdvanceMigrationRequest(
     legacyPaymentProfileId = 1111,
     legacyInformationNumber = "1234-1",
@@ -63,6 +70,40 @@ class AdvanceMigrationTest : IntegrationTestBase() {
   }
 
   @Test
+  fun `Should return 201 and advance record response on successful migration without legacy transaction id`() {
+    val migrationRequestWithoutLegacyTxn = migrationRequest.copy(legacyTransactionId = null)
+
+    val advanceResponse = webTestClient.post().uri("/migrate/advances")
+      .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+      .headers(setIdempotencyKey(UUID.randomUUID()))
+      .bodyValue(migrationRequestWithoutLegacyTxn)
+      .exchange()
+      .expectStatus()
+      .isEqualTo(HttpStatus.CREATED)
+      .expectBody<AdvanceRecordResponse>().returnResult().responseBody!!
+
+    assertThat(advanceResponse.status).isEqualTo(migrationRequestWithoutLegacyTxn.status)
+    assertThat(advanceResponse.amount).isEqualTo(migrationRequestWithoutLegacyTxn.amountIssued)
+    assertThat(advanceResponse.prisonNumber).isEqualTo(migrationRequestWithoutLegacyTxn.prisonNumber)
+    assertThat(advanceResponse.legacyPaymentProfileId).isEqualTo(migrationRequestWithoutLegacyTxn.legacyPaymentProfileId)
+    assertThat(advanceResponse.comment).isEqualTo(migrationRequestWithoutLegacyTxn.comment)
+    assertThat(advanceResponse.prisonID).isEqualTo(migrationRequestWithoutLegacyTxn.prisonID)
+    assertThat(advanceResponse.repaymentAmount).isEqualTo(migrationRequestWithoutLegacyTxn.repaymentAmount)
+    assertThat(advanceResponse.repaymentStartDate).isEqualTo(migrationRequestWithoutLegacyTxn.repaymentStartDate)
+    assertThat(advanceResponse.reference).isEqualTo(migrationRequestWithoutLegacyTxn.reference)
+    assertThat(advanceResponse.comment).isEqualTo(migrationRequestWithoutLegacyTxn.comment)
+    assertThat(advanceResponse.createdBy).isEqualTo(migrationRequestWithoutLegacyTxn.createdBy)
+    assertThat(advanceResponse.createdOn).isEqualTo(migrationRequestWithoutLegacyTxn.createdOn)
+    assertThat(advanceResponse.legacyInformationNumber).isEqualTo(
+      migrationRequestWithoutLegacyTxn
+        .legacyInformationNumber,
+    )
+    // updated at is only updated by status changes
+    assertThat(advanceResponse.updatedAt).isNull()
+    assertThat(advanceResponse.generalLedgerUUID).isEqualTo(null)
+  }
+
+  @Test
   fun `Should return the same advance record if called twice`() {
     val firstAdvanceResponse = webTestClient.post().uri("/migrate/advances")
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
@@ -80,7 +121,7 @@ class AdvanceMigrationTest : IntegrationTestBase() {
       .isEqualTo(HttpStatus.CREATED)
       .expectBody<AdvanceRecordResponse>().returnResult().responseBody!!
 
-    assertThat(firstAdvanceResponse).isEqualTo(secondAdvanceResponse).usingRecursiveComparison()
+    assertThat(firstAdvanceResponse).usingRecursiveComparison().ignoringFieldsOfTypes(Instant::class.java).isEqualTo(secondAdvanceResponse)
   }
 
   @ParameterizedTest(name = "Should return bad request when trying to migrate an inactive advance with status: {0}")

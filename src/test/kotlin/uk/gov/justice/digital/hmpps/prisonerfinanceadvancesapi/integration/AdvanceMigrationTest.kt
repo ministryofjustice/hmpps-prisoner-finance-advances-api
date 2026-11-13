@@ -63,6 +63,37 @@ class AdvanceMigrationTest : IntegrationTestBase() {
   }
 
   @Test
+  fun `Should return 201 and advance record response on successful migration without legacy transaction id`() {
+    val migrationRequest = migrationRequest.copy(legacyTransactionId = null)
+
+    val advanceResponse = webTestClient.post().uri("/migrate/advances")
+      .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+      .headers(setIdempotencyKey(UUID.randomUUID()))
+      .bodyValue(migrationRequest)
+      .exchange()
+      .expectStatus()
+      .isEqualTo(HttpStatus.CREATED)
+      .expectBody<AdvanceRecordResponse>().returnResult().responseBody!!
+
+    assertThat(advanceResponse.status).isEqualTo(migrationRequest.status)
+    assertThat(advanceResponse.amount).isEqualTo(migrationRequest.amountIssued)
+    assertThat(advanceResponse.prisonNumber).isEqualTo(migrationRequest.prisonNumber)
+    assertThat(advanceResponse.legacyPaymentProfileId).isEqualTo(migrationRequest.legacyPaymentProfileId)
+    assertThat(advanceResponse.comment).isEqualTo(migrationRequest.comment)
+    assertThat(advanceResponse.prisonID).isEqualTo(migrationRequest.prisonID)
+    assertThat(advanceResponse.repaymentAmount).isEqualTo(migrationRequest.repaymentAmount)
+    assertThat(advanceResponse.repaymentStartDate).isEqualTo(migrationRequest.repaymentStartDate)
+    assertThat(advanceResponse.reference).isEqualTo(migrationRequest.reference)
+    assertThat(advanceResponse.comment).isEqualTo(migrationRequest.comment)
+    assertThat(advanceResponse.createdBy).isEqualTo(migrationRequest.createdBy)
+    assertThat(advanceResponse.createdOn).isEqualTo(migrationRequest.createdOn)
+    assertThat(advanceResponse.legacyInformationNumber).isEqualTo(migrationRequest.legacyInformationNumber)
+    // updated at is only updated by status changes
+    assertThat(advanceResponse.updatedAt).isNull()
+    assertThat(advanceResponse.generalLedgerUUID).isEqualTo(null)
+  }
+
+  @Test
   fun `Should return the same advance record if called twice`() {
     val firstAdvanceResponse = webTestClient.post().uri("/migrate/advances")
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))

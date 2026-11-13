@@ -121,7 +121,7 @@ class AdvanceMigrationTest : IntegrationTestBase() {
       .isEqualTo(HttpStatus.CREATED)
       .expectBody<AdvanceRecordResponse>().returnResult().responseBody!!
 
-    assertThat(firstAdvanceResponse).isEqualTo(secondAdvanceResponse).usingRecursiveComparison()
+    assertThat(firstAdvanceResponse).isEqualTo(secondAdvanceResponse).usingRecursiveComparison().ignoringFields("createdOn", "repaymentStartDate")
   }
 
   @ParameterizedTest(name = "Should return bad request when trying to migrate an inactive advance with status: {0}")

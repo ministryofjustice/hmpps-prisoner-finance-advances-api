@@ -6,12 +6,16 @@ import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import org.hibernate.envers.AuditTable
+import org.hibernate.envers.Audited
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import java.time.Instant
 import java.util.UUID
 
 @Entity
 @Table(name = "advance_records")
+@Audited
+@AuditTable(value = "advances_aud")
 data class AdvanceRecordEntity(
 
   @Id

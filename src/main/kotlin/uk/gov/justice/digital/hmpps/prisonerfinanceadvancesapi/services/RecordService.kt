@@ -416,4 +416,13 @@ class RecordService(
 
     return AdvanceRecordResponse.fromEntity(advanceEntity)
   }
+
+  fun mergeAdvances(mergedPrisonNumber: String, survivingPrisonerNumber: String) {
+    val updatedRecords = advanceRecordRepository.findByPrisonNumber(mergedPrisonNumber)
+      .onEach { advanceRecord ->
+        advanceRecord.prisonNumber = survivingPrisonerNumber
+        advanceRecord.updatedBy = "DPS-Merge-Event"
+      }
+    advanceRecordRepository.saveAll(updatedRecords)
+  }
 }

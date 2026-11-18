@@ -19,6 +19,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.Cr
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRepaymentRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRepaymentResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.PagedResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvancePaymentRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceRecordRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.repositories.AdvanceWriteOffRepository
@@ -98,6 +99,17 @@ class IntegrationTestHelpers(
       .returnResult()
       .responseBody!!
   }
+
+  fun getAdvances(
+    prisonNumber: String,
+  ): PagedResponse<AdvanceRecordResponse> = webTestClient.get().uri("/advances/$prisonNumber")
+    .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+    .exchange()
+    .expectStatus()
+    .isOk
+    .expectBody<PagedResponse<AdvanceRecordResponse>>()
+    .returnResult()
+    .responseBody!!
 
   fun createAdvance(
     prisonNumber: String,

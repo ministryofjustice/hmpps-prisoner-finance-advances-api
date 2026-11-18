@@ -20,7 +20,7 @@ open class AuditRevisionEntity {
   @field:GeneratedValue(strategy = GenerationType.IDENTITY)
   @field:RevisionNumber
   @field:Column(name = "rev")
-  open var id: Long? = null
+  open var id: Long = 0
 
   @field:RevisionTimestamp
   @field:Column(name = "revtstmp", nullable = false)

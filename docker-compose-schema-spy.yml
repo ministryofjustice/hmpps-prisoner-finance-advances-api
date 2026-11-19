@@ -13,6 +13,7 @@ services:
       - HMPPS_AUTH_URL=http://hmpps-auth:8080/auth
       - SPRING_PROFILES_ACTIVE=dev
       - DB_SERVER=hmpps-prisoner-finance-advances-db:5432
+      - HMPPS_SQS_LOCALSTACK_URL=http://localstack:4566
     depends_on:
       hmpps-prisoner-finance-advances-db:
         condition: service_healthy

@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.services
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
@@ -1683,6 +1684,67 @@ class AdvanceRecordServiceTest {
 
       verify(advanceRecordRepository, times(0)).save(any())
       verify(migrationBalanceRepository, times(0)).save(any())
+    }
+  }
+
+  @Nested
+  @DisplayName("mergeAdvances")
+  inner class MergeAdvancesTest {
+    private val survivedPrisonNumber = "A123AA"
+    private val mergedPrisonNumber = "X999ZX"
+
+    @Test
+    fun `should merge advances by prisonNumber`() {
+      val mockAdvances = listOf(
+        AdvanceRecordEntity(
+          legacyPaymentProfileId = 12345,
+          legacyInformationNumber = "12345-1",
+          prisonNumber = mergedPrisonNumber,
+          prisonID = "LEI",
+          amount = 100,
+          createdOn = Instant.now(),
+          repaymentStartDate = Instant.now(),
+          repaymentAmount = 1,
+          reference = "",
+          comment = "",
+          createdBy = "",
+          updatedAt = Instant.now(),
+          status = AdvanceStatus.ACTIVE,
+          updatedBy = "",
+        ),
+        AdvanceRecordEntity(
+          legacyPaymentProfileId = 12346,
+          legacyInformationNumber = "12346-1",
+          prisonNumber = mergedPrisonNumber,
+          prisonID = "LEI",
+          amount = 99,
+          createdOn = Instant.now(),
+          repaymentStartDate = Instant.now(),
+          repaymentAmount = 1,
+          reference = "",
+          comment = "",
+          createdBy = "",
+          updatedAt = Instant.now(),
+          status = AdvanceStatus.ACTIVE,
+          updatedBy = "",
+        ),
+      )
+
+      whenever {
+        advanceRecordRepository.findByPrisonNumber(mergedPrisonNumber)
+      }.thenReturn(mockAdvances)
+
+      val entityUpdateCaptor = argumentCaptor<List<AdvanceRecordEntity>>()
+
+      whenever { advanceRecordRepository.saveAll(entityUpdateCaptor.capture()) }.thenAnswer { it.arguments[0] }
+
+      advanceRecordService.mergeAdvances(survivedPrisonNumber = survivedPrisonNumber, removedPrisonNumber = mergedPrisonNumber)
+
+      entityUpdateCaptor.firstValue.withIndex().forEach { (i, advance) ->
+        assertThat(mockAdvances[i].legacyPaymentProfileId).isEqualTo(advance.legacyPaymentProfileId)
+        assertThat(advance.prisonNumber).isEqualTo(survivedPrisonNumber)
+        assertThat(advance.updatedBy).isEqualTo("DPS-Merge-Event")
+      }
     }
   }
 }

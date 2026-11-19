@@ -28,8 +28,8 @@ class DomainEventsSubscriber(
           val prisonerMerged = objectMapper.readValue(event.message, HmppsMergeEvent::class.java)
 
           advanceRecordService.mergeAdvances(
-            mergedPrisonNumber = prisonerMerged.additionalInformation.removedNomsNumber,
-            survivingPrisonerNumber = prisonerMerged.additionalInformation.nomsNumber,
+            removedPrisonNumber = prisonerMerged.additionalInformation.removedNomsNumber,
+            survivedPrisonNumber = prisonerMerged.additionalInformation.nomsNumber,
           )
           log.info("Merged event: $prisonerMerged")
         }

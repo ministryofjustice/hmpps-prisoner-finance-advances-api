@@ -61,4 +61,7 @@ data class AdvanceRecordEntity(
   @Column(name = "status", nullable = false, unique = false)
   var status: AdvanceStatus,
 
+  @Column(name = "updated_by", nullable = true, unique = false)
+  var updatedBy: String? = null,
+
 )

@@ -10,6 +10,7 @@ interface AdvanceRecordRepository : JpaRepository<AdvanceRecordEntity, UUID> {
   fun getAdvanceRecordByLegacyPaymentProfileId(legacyPaymentProfileId: Long): AdvanceRecordEntity?
 
   fun findByPrisonNumber(prisonNumber: String, pageable: Pageable): Page<AdvanceRecordEntity>
+  fun findByPrisonNumber(prisonNumber: String): List<AdvanceRecordEntity>
   fun getAdvanceRecordEntityById(advanceId: UUID): AdvanceRecordEntity?
   fun findAdvanceRecordEntitiesByPrisonNumberAndStatus(prisonNumber: String, status: AdvanceStatus): List<AdvanceRecordEntity>
 }

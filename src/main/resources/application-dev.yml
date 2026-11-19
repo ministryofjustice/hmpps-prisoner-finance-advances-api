@@ -30,6 +30,7 @@ advances-api:
 
 hmpps:
   sqs:
+    localstackUrl: ${HMPPS_SQS_LOCALSTACK_URL:http://localhost:4566}
     provider: localstack
     queues:
       domainevents:

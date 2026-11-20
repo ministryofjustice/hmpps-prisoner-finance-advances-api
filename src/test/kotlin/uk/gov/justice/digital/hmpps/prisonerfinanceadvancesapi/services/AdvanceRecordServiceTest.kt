@@ -39,6 +39,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.Adva
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreatePostingRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreateTransactionRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceMigrationRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceUpdateRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceWriteOffRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRepaymentRequest
@@ -82,6 +83,29 @@ class AdvanceRecordServiceTest {
     advancePaymentRepository.deleteAll()
     advanceWriteOffRepository.deleteAll()
     advanceRecordRepository.deleteAll()
+  }
+
+  fun mockGeneralLedger(prisonNumber: String, prisonID: String, idempotencyKey: UUID, glTransactionId: UUID) {
+    whenever {
+      accountResolver.resolveSubAccount(
+        parentRef = eq(prisonID),
+        subRef = eq("1502:ADV"),
+      )
+    }.thenReturn(UUID.randomUUID())
+
+    whenever {
+      accountResolver.resolveSubAccount(
+        parentRef = eq(prisonNumber),
+        subRef = eq("SPENDS"),
+      )
+    }.thenReturn(UUID.randomUUID())
+
+    whenever(
+      generalLedgerApiClient.postTransaction(
+        request = any<CreateTransactionRequest>(),
+        idempotencyKey = eq(idempotencyKey),
+      ),
+    ).thenReturn(glTransactionId)
   }
 
   @BeforeEach
@@ -1745,6 +1769,76 @@ class AdvanceRecordServiceTest {
         assertThat(advance.prisonNumber).isEqualTo(survivedPrisonNumber)
         assertThat(advance.updatedBy).isEqualTo("DPS-Merge-Event")
       }
+    }
+  }
+
+  @Nested
+  inner class UpdateAdvance {
+
+    @Test
+    fun `should update existing advance with new comment`() {
+      val expectedComment = "hello there"
+      val expectedUpdatedBy = "TEST"
+
+      val prisonNumber = "A123XZ"
+      val prisonID = "LEI"
+
+      val advanceEntity = AdvanceRecordEntity(
+        legacyPaymentProfileId = 1,
+        legacyInformationNumber = "123456",
+        prisonNumber = prisonNumber,
+        prisonID = prisonID,
+        amount = 100,
+        createdOn = Instant.now(),
+        repaymentStartDate = Instant.now(),
+        repaymentAmount = 100,
+        reference = "",
+        comment = "hello",
+        createdBy = "TEST",
+        status = AdvanceStatus.ACTIVE,
+        updatedAt = null,
+        updatedBy = "",
+      )
+
+      whenever(advanceRecordRepository.getAdvanceRecordEntityById(advanceEntity.id)).thenReturn(advanceEntity)
+
+      val advanceUpdateCaptor = argumentCaptor<AdvanceRecordEntity>()
+
+      whenever { advanceRecordRepository.save(advanceUpdateCaptor.capture()) }.thenAnswer { it.arguments[0] }
+
+      val advanceUpdateRequest = AdvanceUpdateRequest(
+        comment = expectedComment,
+        updatedBy = expectedUpdatedBy,
+      )
+
+      val response = advanceRecordService.updateAdvance(advanceEntity.id, advanceUpdateRequest)
+
+      val updatedAdvance = advanceUpdateCaptor.firstValue
+
+      assertThat(updatedAdvance.updatedBy).isEqualTo(expectedUpdatedBy)
+      assertThat(updatedAdvance.comment).isEqualTo(expectedComment)
+
+      assertThat(response.comment).isEqualTo(expectedComment)
+      assertThat(response.updatedBy).isEqualTo(expectedUpdatedBy)
+    }
+
+    @Test
+    fun `should throw not found exception when the advance record does not exist`() {
+      val expectedComment = "hello there"
+      val expectedUpdatedBy = "TEST"
+
+      whenever(advanceRecordRepository.getAdvanceRecordEntityById(any())).thenReturn(null)
+
+      val advanceUpdateRequest = AdvanceUpdateRequest(
+        comment = expectedComment,
+        updatedBy = expectedUpdatedBy,
+      )
+
+      val error = assertThrows<CustomException> {
+        advanceRecordService.updateAdvance(advanceEntity.id, advanceUpdateRequest)
+      }
+
+      assertThat(error.status).isEqualTo(HttpStatus.NOT_FOUND)
     }
   }
 }

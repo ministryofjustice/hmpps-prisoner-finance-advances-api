@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.Adva
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreatePostingRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.CreateTransactionRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceMigrationRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceUpdateRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceWriteOffRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRepaymentRequest
@@ -424,5 +425,16 @@ class RecordService(
         advanceRecord.updatedBy = "DPS-Merge-Event"
       }
     advanceRecordRepository.saveAll(updatedRecords)
+  }
+
+  fun updateAdvance(advanceId: UUID, updateRequest: AdvanceUpdateRequest): AdvanceRecordResponse {
+    val existingAdvance = advanceRecordRepository.getAdvanceRecordEntityById(advanceId) ?: throw CustomException("No record found with id $advanceId", HttpStatus.NOT_FOUND)
+
+    existingAdvance.updatedBy = updateRequest.updatedBy
+    existingAdvance.comment = updateRequest.comment
+
+    val updatedAdvance = advanceRecordRepository.save(existingAdvance)
+
+    return AdvanceRecordResponse.fromEntity(updatedAdvance)
   }
 }

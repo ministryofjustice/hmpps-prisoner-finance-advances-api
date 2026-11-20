@@ -18,6 +18,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wirem
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.enums.AdvanceStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.generalledger.ErrorResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceUpdateRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceWriteOffRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AdvanceRecordResponse
@@ -590,6 +591,116 @@ class RecordIntegrationTest : IntegrationTestBase() {
         .responseBody!!
 
       assertThat(responseTwo.status).isEqualTo(AdvanceStatus.WRITTEN_OFF)
+    }
+  }
+
+  @Nested
+  inner class UpdateAdvance {
+
+    val prisonNumber = "A1234AA"
+    val prisonId = "LEI"
+    val prisonerSubAccountId: UUID = UUID.randomUUID()
+    val prisonSubAccountId: UUID = UUID.randomUUID()
+    val prisonParentAccountId: UUID = UUID.randomUUID()
+    val prisonerParentAccountId: UUID = UUID.randomUUID()
+
+    val expectedComment = "HELLO WORLD, goodbye"
+    val expectedUpdateBy = "TEST"
+
+    val updateRequest = AdvanceUpdateRequest(
+      comment = expectedComment,
+      updatedBy = expectedUpdateBy,
+    )
+
+    @Test
+    fun `Should return 200 when updating advance record comment`() {
+      val advanceCreated = integrationTestHelpers.createAdvance(
+        prisonNumber = prisonNumber,
+        legacyPaymentProfileId = 123,
+        legacyInformationNumber = "1234",
+        amount = 10,
+        prisonId = prisonId,
+        repaymentAmount = 5,
+        status = AdvanceStatus.ACTIVE,
+        prisonerSubAccountId = prisonerSubAccountId,
+        prisonSubAccountId = prisonSubAccountId,
+        prisonParentAccountId = prisonParentAccountId,
+        prisonerParentAccountId = prisonerParentAccountId,
+        comment = "hello world",
+      )
+
+      val updatedResponse = webTestClient.post().uri("/advances/${advanceCreated.id}/update")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .header("Content-Type", "application/json")
+        .bodyValue(updateRequest)
+        .exchange()
+        .expectStatus()
+        .isOk
+        .expectBody<AdvanceRecordResponse>()
+        .returnResult()
+        .responseBody!!
+
+      assertThat(updatedResponse.id).isEqualTo(advanceCreated.id)
+      assertThat(updatedResponse.comment).isEqualTo(expectedComment)
+      assertThat(updatedResponse.updatedBy).isEqualTo(expectedUpdateBy)
+    }
+
+    @Test
+    fun `Should return 400 when updating advance record with bad request`() {
+      val error = webTestClient.post().uri("/advances/${UUID.randomUUID()}/update")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .header("Content-Type", "application/json")
+        .bodyValue("{\"hello\": \"world\"}")
+        .exchange()
+        .expectStatus()
+        .isBadRequest
+        .expectBody<ErrorResponse>()
+        .returnResult()
+        .responseBody!!
+
+      assertThat(error.status).isEqualTo(400)
+      assertThat(error.userMessage).contains("Validation failure: JSON parse error")
+    }
+
+    @Test
+    fun `Should return 400 when updating advance record with advanceId`() {
+      val error = webTestClient.post().uri("/advances/abcde/update")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .header("Content-Type", "application/json")
+        .bodyValue(updateRequest)
+        .exchange()
+        .expectStatus()
+        .isBadRequest
+        .expectBody<ErrorResponse>()
+        .returnResult()
+        .responseBody!!
+
+      assertThat(error.status).isEqualTo(400)
+      assertThat(error.userMessage).contains("Parameter 'advanceId' must be of type UUID")
+    }
+
+    @Test
+    fun `Should return 403 when the wrong role is used`() {
+      webTestClient.post().uri("/advances/${UUID.randomUUID()}/update")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RO)))
+        .header("Content-Type", "application/json")
+        .bodyValue(updateRequest)
+        .exchange()
+        .expectStatus()
+        .isForbidden
+        .expectBody<ErrorResponse>()
+    }
+
+    @Test
+    fun `Should return 404 when the advance record does not exist`() {
+      webTestClient.post().uri("/advances/${UUID.randomUUID()}/update")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__ADVANCES__RW)))
+        .header("Content-Type", "application/json")
+        .bodyValue(updateRequest)
+        .exchange()
+        .expectStatus()
+        .isNotFound
+        .expectBody<ErrorResponse>()
     }
   }
 }

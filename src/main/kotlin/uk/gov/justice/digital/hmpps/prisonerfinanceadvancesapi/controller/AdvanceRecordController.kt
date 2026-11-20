@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RO
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.config.ROLE_PRISONER_FINANCE__ADVANCES__RW
+import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceUpdateRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.AdvanceWriteOffRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.request.CreateAdvanceRecordRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceadvancesapi.models.responses.AccountAdvanceBalanceResponse
@@ -289,6 +290,52 @@ class AdvanceRecordController(val recordService: RecordService) {
     ) prisonNumber: String,
   ): ResponseEntity<AccountAdvanceBalanceResponse> {
     val response = recordService.getAccountAdvanceBalance(prisonNumber)
+
+    return ResponseEntity.status(HttpStatus.OK).body(response)
+  }
+
+  @ApiResponses(
+    value = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Update advance record",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = AdvanceRecordResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Bad Request",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized - requires a valid OAuth2 token",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden - requires an appropriate role",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Not Found - Advance record to update not found",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "Internal Server Error - An unexpected error occurred.",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+  )
+  @SecurityRequirement(name = "bearer-jwt", scopes = [ROLE_PRISONER_FINANCE__ADVANCES__RW])
+  @PreAuthorize("hasAnyAuthority('$ROLE_PRISONER_FINANCE__ADVANCES__RW')")
+  @PostMapping("/advances/{advanceId}/update")
+  fun updateAdvance(
+    @PathVariable advanceId: UUID,
+    @Valid @RequestBody updateRequest: AdvanceUpdateRequest,
+  ): ResponseEntity<AdvanceRecordResponse> {
+    val response = recordService.updateAdvance(advanceId, updateRequest)
 
     return ResponseEntity.status(HttpStatus.OK).body(response)
   }

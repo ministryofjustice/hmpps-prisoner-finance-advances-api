@@ -125,6 +125,7 @@ class IntegrationTestHelpers(
     prisonerParentAccountId: UUID,
     createdOn: Instant = Instant.now(),
     repaymentStartDate: Instant = Instant.now(),
+    comment: String? = null,
   ): AdvanceRecordResponse {
     val advanceRecordRequest = CreateAdvanceRecordRequest(
       legacyPaymentProfileId = legacyPaymentProfileId,
@@ -138,6 +139,7 @@ class IntegrationTestHelpers(
       reference = "REF",
       createdBy = "USER",
       status = status,
+      comment = comment,
     )
 
     stubGetSubAccounts(

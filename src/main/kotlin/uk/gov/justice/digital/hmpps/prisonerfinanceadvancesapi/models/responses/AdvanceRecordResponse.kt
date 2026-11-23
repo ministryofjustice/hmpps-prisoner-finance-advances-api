@@ -52,6 +52,9 @@ data class AdvanceRecordResponse(
 
   @field:Schema(description = "The transaction UUID from General Ledger if one was created")
   val generalLedgerUUID: UUID?,
+
+  @field:Schema(description = "The last user who has updated the Advance Record")
+  val updatedBy: String?,
 ) {
   companion object {
     fun fromEntity(advanceRecordEntity: AdvanceRecordEntity, generalLedgerUUID: UUID? = null) = AdvanceRecordResponse(
@@ -70,6 +73,7 @@ data class AdvanceRecordResponse(
       status = advanceRecordEntity.status,
       updatedAt = advanceRecordEntity.updatedAt,
       generalLedgerUUID = generalLedgerUUID,
+      updatedBy = advanceRecordEntity.updatedBy,
     )
   }
 }

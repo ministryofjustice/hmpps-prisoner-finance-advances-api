@@ -19,6 +19,7 @@ import java.util.UUID
 data class AdvanceRecordEntity(
 
   @Id
+  @Column(name = "advance_id", nullable = false, unique = true)
   var id: UUID = UUID.randomUUID(),
 
   @Column(name = "legacy_payment_profile_id", nullable = false, unique = true)
